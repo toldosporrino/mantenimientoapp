@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Incidencias – Toldos Porriño</title>
+  <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand">Toldos Porriño</div><div class="sub">Gestión de Mantenimiento</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="index.html"          class="nav-link"><span class="icon">📊</span> Dashboard</a>
+      <a href="contratos.html"      class="nav-link"><span class="icon">📋</span> Contratos</a>
+      <a href="visitas.html"        class="nav-link"><span class="icon">📅</span> Visitas</a>
+      <a href="incidencias.html"    class="nav-link"><span class="icon">🚨</span> Incidencias</a>
+      <a href="facturacion.html"    class="nav-link"><span class="icon">💶</span> Facturación</a>
+      <div class="nav-section">Acciones</div>
+      <a href="nuevo-contrato.html" class="nav-link"><span class="icon">➕</span> Nuevo contrato</a>
+      <a href="informe.html"        class="nav-link"><span class="icon">📝</span> Nuevo informe</a>
+    </nav>
+    <div class="sidebar-footer">v1.0 · 2026</div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">🚨 Incidencias</span>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="abrirNuevaIncidencia()">➕ Nueva incidencia</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="filters">
+        <input class="filter-input" type="search" id="buscar" placeholder="🔍 Buscar cliente, descripción..."/>
+        <select class="filter-input" id="filtroEstado">
+          <option value="">Todos los estados</option>
+          <option value="abierta">Abierta</option>
+          <option value="en_curso">En curso</option>
+          <option value="cerrada">Cerrada</option>
+        </select>
+        <select class="filter-input" id="filtroSLA">
+          <option value="">Todos</option>
+          <option value="urgente">SLA urgente (&lt;8h)</option>
+          <option value="advertencia">SLA advertencia</option>
+          <option value="vencido">SLA vencido</option>
+        </select>
+      </div>
+
+      <!-- KPIs incidencias -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:1rem" id="kpisInc"></div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Cliente</th><th>Descripción</th><th>Apertura</th><th>SLA (48h)</th><th>Estado</th><th>Técnico</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="tbodyInc"></tbody>
+          </table>
+        </div>
+        <div id="emptyInc" class="hidden"><div class="empty-state"><div class="icon">🎉</div><p>Sin incidencias que mostrar</p></div></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="index.html"       class="bottom-nav-item"><span class="icon">📊</span>Dashboard</a>
+    <a href="contratos.html"   class="bottom-nav-item"><span class="icon">📋</span>Contratos</a>
+    <a href="visitas.html"     class="bottom-nav-item"><span class="icon">📅</span>Visitas</a>
+    <a href="incidencias.html" class="bottom-nav-item active"><span class="icon">🚨</span>Alertas</a>
+    <a href="facturacion.html" class="bottom-nav-item"><span class="icon">💶</span>Cobros</a>
+  </div>
+</nav>
+
+<!-- MODAL NUEVA INCIDENCIA -->
+<div class="modal-overlay" id="modalNuevaInc">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🚨 Nueva incidencia</h3>
+      <button class="modal-close" onclick="cerrarModal('modalNuevaInc')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Cliente / Contrato <span class="req">*</span></label>
+      <select id="incContrato">
+        <option value="">Seleccionar...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Canal de comunicación</label>
+      <select id="incCanal">
+        <option value="telefono">📞 Teléfono</option>
+        <option value="whatsapp">💬 WhatsApp</option>
+        <option value="email">✉️ Email</option>
+        <option value="presencial">🏠 Presencial</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Descripción de la incidencia <span class="req">*</span></label>
+      <textarea id="incDescripcion" placeholder="Describe el problema: elemento afectado, síntomas observados..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Técnico asignado</label>
+      <select id="incTecnico"><option value="">Sin asignar</option></select>
+    </div>
+    <div style="background:var(--yellow-bg); border-radius:8px; padding:.75rem 1rem; font-size:.82rem; color:var(--yellow); margin-bottom:1rem">
+      ⏱️ Se registrará automáticamente la hora actual y se calculará el SLA de 48h laborables.
+    </div>
+    <button class="btn btn-primary btn-full" onclick="crearIncidencia()">Registrar incidencia</button>
+  </div>
+</div>
+
+<!-- MODAL DETALLE/EDITAR INCIDENCIA -->
+<div class="modal-overlay" id="modalDetalleInc">
+  <div class="modal" id="detalleIncContenido"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+function render() {
+  const buscar  = document.getElementById('buscar').value.toLowerCase();
+  const estado  = document.getElementById('filtroEstado').value;
+  const slaFilt = document.getElementById('filtroSLA').value;
+  const all     = db.incidencias();
+
+  // KPIs
+  const abiertas  = all.filter(i=>i.estado==='abierta').length;
+  const enCurso   = all.filter(i=>i.estado==='en_curso').length;
+  const cerradas  = all.filter(i=>i.estado==='cerrada').length;
+  const vencidas  = all.filter(i=>i.estado!=='cerrada' && horasHasta(i.slaVencimiento) < 0).length;
+  document.getElementById('kpisInc').innerHTML = `
+    <div class="kpi kpi-red"><div class="kpi-label">Abiertas</div><div class="kpi-value">${abiertas}</div></div>
+    <div class="kpi kpi-yellow"><div class="kpi-label">En curso</div><div class="kpi-value">${enCurso}</div></div>
+    <div class="kpi kpi-green"><div class="kpi-label">Cerradas</div><div class="kpi-value">${cerradas}</div></div>
+    <div class="kpi" style="border-top:3px solid var(--red)"><div class="kpi-label">SLA vencido</div><div class="kpi-value" style="color:var(--red)">${vencidas}</div></div>
+  `;
+
+  let lista = all.filter(i => {
+    const c = db.contrato(i.contratoId);
+    const txt = `${c?.cliente.nombre||''} ${i.descripcion} ${i.id}`.toLowerCase();
+    if (buscar && !txt.includes(buscar)) return false;
+    if (estado && i.estado !== estado) return false;
+    if (slaFilt) {
+      const h = horasHasta(i.slaVencimiento);
+      if (slaFilt==='urgente'    && !(h >= 0 && h < 8))  return false;
+      if (slaFilt==='advertencia'&& !(h >= 8 && h < 24)) return false;
+      if (slaFilt==='vencido'    && !(h < 0))             return false;
+    }
+    return true;
+  }).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+
+  const tbody = document.getElementById('tbodyInc');
+  const empty = document.getElementById('emptyInc');
+
+  if (!lista.length) { tbody.innerHTML=''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  tbody.innerHTML = lista.map(i => {
+    const c = db.contrato(i.contratoId);
+    const h = i.estado !== 'cerrada' ? horasHasta(i.slaVencimiento) : null;
+    let slaCls = '', slaTxt = '';
+    if (i.estado === 'cerrada') { slaCls='text-gray'; slaTxt='Cerrada'; }
+    else if (h < 0)  { slaCls='sla-urgent'; slaTxt=`⚠️ Vencido hace ${Math.abs(h)}h`; }
+    else if (h < 8)  { slaCls='sla-urgent'; slaTxt=`🔴 ${h}h restantes`; }
+    else if (h < 24) { slaCls='sla-warn';   slaTxt=`🟡 ${h}h restantes`; }
+    else             { slaCls='sla-ok';     slaTxt=`🟢 ${h}h restantes`; }
+
+    return `<tr>
+      <td class="font-bold">${i.id}</td>
+      <td>
+        <div class="font-bold" style="font-size:.88rem">${c?.cliente.nombre||i.contratoId}</div>
+        <div class="text-sm text-gray">${c?.cliente.telefono||''}</div>
+      </td>
+      <td style="max-width:220px">
+        <div style="font-size:.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${i.descripcion}</div>
+        <div class="text-sm text-gray">Canal: ${i.canal||'—'}</div>
+      </td>
+      <td class="text-sm">${formatFechaHora(i.fecha)}</td>
+      <td class="${slaCls} text-sm">${slaTxt}</td>
+      <td>${badgeEstado(i.estado)}</td>
+      <td class="text-sm">${i.tecnico||<span class="text-gray">Sin asignar</span>}</td>
+      <td>
+        <div class="td-actions">
+          <button class="btn btn-ghost btn-sm" onclick="verIncidencia('${i.id}')">Ver</button>
+          ${i.estado!=='cerrada' ? `<button class="btn btn-success btn-sm" onclick="cerrarIncidencia('${i.id}')">✓</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function abrirNuevaIncidencia() {
+  const sel = document.getElementById('incContrato');
+  sel.innerHTML = '<option value="">Seleccionar...</option>';
+  db.contratos().filter(c=>c.estado==='activo').forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = `CTR-${c.numero} · ${c.cliente.nombre}`;
+    sel.appendChild(o);
+  });
+  const selT = document.getElementById('incTecnico');
+  selT.innerHTML = '<option value="">Sin asignar</option>';
+  db.tecnicos().forEach(t => {
+    const o = document.createElement('option'); o.value = t; o.textContent = t; selT.appendChild(o);
+  });
+  document.getElementById('modalNuevaInc').classList.add('open');
+}
+
+function crearIncidencia() {
+  const cid  = document.getElementById('incContrato').value;
+  const desc = document.getElementById('incDescripcion').value.trim();
+  if (!cid || !desc) return toast('Rellena todos los campos obligatorios', 'error');
+  nuevaIncidencia({
+    contratoId: cid,
+    descripcion: desc,
+    canal: document.getElementById('incCanal').value,
+    tecnico: document.getElementById('incTecnico').value,
+    fotos: []
+  });
+  cerrarModal('modalNuevaInc');
+  toast('Incidencia registrada · SLA 48h activado ✓', 'success');
+  render();
+}
+
+function verIncidencia(id) {
+  const i = db.incidencia(id);
+  const c = db.contrato(i.contratoId);
+  const h = i.estado !== 'cerrada' ? horasHasta(i.slaVencimiento) : null;
+
+  document.getElementById('detalleIncContenido').innerHTML = `
+    <div class="modal-header">
+      <h3>🚨 ${i.id}</h3>
+      <button class="modal-close" onclick="cerrarModal('modalDetalleInc')">✕</button>
+    </div>
+    <div style="display:grid; gap:.65rem; margin-bottom:1.25rem; font-size:.88rem">
+      <div><span class="text-gray">Cliente:</span> <strong>${c?.cliente.nombre}</strong></div>
+      <div><span class="text-gray">Contrato:</span> CTR-${c?.numero} · ${c?.direccionInstalacion}</div>
+      <div><span class="text-gray">Apertura:</span> ${formatFechaHora(i.fecha)}</div>
+      <div><span class="text-gray">Canal:</span> ${i.canal||'—'}</div>
+      <div><span class="text-gray">SLA vence:</span> <strong>${formatFechaHora(i.slaVencimiento)}</strong> ${h!==null?(h<0?'<span class="sla-urgent">⚠️ VENCIDO</span>':`(<span class="${h<8?'sla-urgent':h<24?'sla-warn':'sla-ok'}">${h}h</span>)`):''}  </div>
+    </div>
+    <div class="form-section-title">Descripción</div>
+    <div style="background:var(--gray-light); border-radius:8px; padding:.75rem 1rem; margin-bottom:1rem; font-size:.9rem">${i.descripcion}</div>
+    <div class="form-group">
+      <label>Técnico asignado</label>
+      <select id="editTecnico">
+        <option value="">Sin asignar</option>
+        ${db.tecnicos().map(t=>`<option value="${t}" ${i.tecnico===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Estado</label>
+      <select id="editEstado">
+        <option value="abierta"  ${i.estado==='abierta'  ?'selected':''}>Abierta</option>
+        <option value="en_curso" ${i.estado==='en_curso' ?'selected':''}>En curso</option>
+        <option value="cerrada"  ${i.estado==='cerrada'  ?'selected':''}>Cerrada</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Resolución / notas</label>
+      <textarea id="editResolucion" rows="3" placeholder="Describe la solución aplicada...">${i.resolucion||''}</textarea>
+    </div>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1rem">
+      <button class="btn btn-primary" onclick="actualizarInc('${i.id}')">Guardar cambios</button>
+      ${c ? `<button class="btn btn-ghost btn-sm" onclick="alertaWhatsApp('${c.cliente.telefono}','Hola ${c.cliente.nombre.split(',')[0]}, estamos gestionando su incidencia ${i.id}. Le mantendremos informado.')">📱 Avisar cliente</button>` : ''}
+      ${i.estado!=='cerrada' ? `<button class="btn btn-success" onclick="cerrarIncidencia('${i.id}')">✓ Cerrar incidencia</button>` : ''}
+    </div>`;
+  document.getElementById('modalDetalleInc').classList.add('open');
+}
+
+function actualizarInc(id) {
+  actualizarIncidencia(id, {
+    tecnico: document.getElementById('editTecnico').value,
+    estado:  document.getElementById('editEstado').value,
+    resolucion: document.getElementById('editResolucion').value
+  });
+  cerrarModal('modalDetalleInc');
+  toast('Incidencia actualizada ✓');
+  render();
+}
+
+function cerrarIncidencia(id) {
+  if (!confirmar('¿Marcar esta incidencia como cerrada?')) return;
+  actualizarIncidencia(id, { estado: 'cerrada', resolucion: document.getElementById('editResolucion')?.value || '' });
+  cerrarModal('modalDetalleInc');
+  toast('Incidencia cerrada ✓', 'success');
+  render();
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+['buscar','filtroEstado','filtroSLA'].forEach(id => document.getElementById(id).addEventListener('input', render));
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); }));
+
+render();
+// Refrescar SLA cada minuto
+setInterval(render, 60000);
+</script>
+</body>
+</html>

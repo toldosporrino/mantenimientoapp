@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Informe Técnico – Toldos Porriño</title>
+  <link rel="stylesheet" href="app.css"/>
+  <style>
+    /* Optimizado para uso en campo con guantes */
+    .check-btn { min-height: 44px; min-width: 70px; font-size: .88rem; }
+    .checklist-item { min-height: 56px; }
+    .checklist-label { font-size: .95rem; }
+    .firma-pad {
+      border: 2px dashed var(--gray-mid);
+      border-radius: var(--radius);
+      background: var(--white);
+      width: 100%; height: 150px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    .producto-check {
+      background: var(--gray-light);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .producto-header {
+      background: var(--blue);
+      color: white;
+      padding: .75rem 1rem;
+      font-weight: 700;
+      font-size: .92rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tiempo-input {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .tiempo-input input { width: 70px; text-align: center; }
+    .step {
+      display: none;
+    }
+    .step.active { display: block; }
+    .progress-bar {
+      height: 4px;
+      background: var(--gray-mid);
+      border-radius: 2px;
+      margin-bottom: 1.5rem;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--blue);
+      border-radius: 2px;
+      transition: width .3s;
+    }
+    .step-indicator {
+      text-align: center;
+      font-size: .8rem;
+      color: var(--gray);
+      margin-bottom: .5rem;
+    }
+  </style>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand">Toldos Porriño</div><div class="sub">Gestión de Mantenimiento</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="index.html"          class="nav-link"><span class="icon">📊</span> Dashboard</a>
+      <a href="contratos.html"      class="nav-link"><span class="icon">📋</span> Contratos</a>
+      <a href="visitas.html"        class="nav-link"><span class="icon">📅</span> Visitas</a>
+      <a href="incidencias.html"    class="nav-link"><span class="icon">🚨</span> Incidencias</a>
+      <a href="facturacion.html"    class="nav-link"><span class="icon">💶</span> Facturación</a>
+      <div class="nav-section">Acciones</div>
+      <a href="nuevo-contrato.html" class="nav-link"><span class="icon">➕</span> Nuevo contrato</a>
+      <a href="informe.html"        class="nav-link"><span class="icon">📝</span> Nuevo informe</a>
+    </nav>
+    <div class="sidebar-footer">v1.0 · 2026</div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">📝 Informe Técnico de Visita</span>
+    </header>
+
+    <main class="page">
+      <!-- SELECCIÓN CONTRATO -->
+      <div class="card section-gap" id="selectorContrato">
+        <div class="card-header"><h2>Seleccionar contrato</h2></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>Buscar cliente / contrato</label>
+            <input type="search" id="buscarContrato" placeholder="Nombre, NIF o nº contrato..."/>
+          </div>
+          <div id="listaContratos" style="margin-top:.75rem"></div>
+        </div>
+      </div>
+
+      <!-- FORMULARIO INFORME (pasos) -->
+      <div id="formInforme" class="hidden">
+        <div class="card section-gap">
+          <div class="card-body">
+            <div id="infoContrato" style="background:var(--blue-light); border-radius:8px; padding:.85rem 1rem; margin-bottom:1.25rem; font-size:.88rem"></div>
+            <div class="step-indicator" id="stepLabel">Paso 1 de 4</div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:25%"></div></div>
+
+            <!-- PASO 1: Datos visita -->
+            <div class="step active" id="step1">
+              <div class="form-section-title">1. Datos de la visita</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Fecha <span class="req">*</span></label>
+                  <input type="date" id="fechaVisita"/>
+                </div>
+                <div class="form-group">
+                  <label>Técnico <span class="req">*</span></label>
+                  <select id="tecnicoVisita"><option value="">Seleccionar...</option></select>
+                </div>
+                <div class="form-group">
+                  <label>Tipo de visita</label>
+                  <select id="tipoVisita">
+                    <option value="preventiva">Preventiva anual</option>
+                    <option value="correctiva">Correctiva</option>
+                    <option value="alta">Visita de alta</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Hora de llegada</label>
+                  <input type="time" id="horaLlegada"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- PASO 2: Checklist por producto -->
+            <div class="step" id="step2">
+              <div class="form-section-title">2. Checklist por unidad (Anexo II)</div>
+              <div id="checklistProductos"></div>
+            </div>
+
+            <!-- PASO 3: Acciones realizadas -->
+            <div class="step" id="step3">
+              <div class="form-section-title">3. Acciones realizadas</div>
+
+              <div class="form-group">
+                <label>Lubricación y ajustes realizados</label>
+                <textarea id="accionPreventivo" placeholder="Describe las acciones preventivas realizadas..."></textarea>
+              </div>
+              <div class="form-group">
+                <label>Pieza correctiva sustituida</label>
+                <input type="text" id="piezaSustituida" placeholder="Ej: Muelle de retorno toldo T001"/>
+              </div>
+              <div class="form-group">
+                <label>Importe pieza (€ sin IVA)</label>
+                <input type="number" id="importePieza" min="0" step="0.01" placeholder="0.00"/>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <div class="tiempo-input">
+                    <div>
+                      <label>Tiempo preventivo (h)</label>
+                      <input type="number" id="tiempoPrev" min="0" step="0.5" value="0"/>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="tiempo-input">
+                    <div>
+                      <label>Tiempo correctivo (h)</label>
+                      <input type="number" id="tiempoCorr" min="0" step="0.5" value="0"/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Recomendaciones</label>
+                <textarea id="recomendaciones" placeholder="Recomendaciones al cliente para próximas intervenciones..."></textarea>
+              </div>
+              <div class="form-group">
+                <label>¿Adjuntar presupuesto?</label>
+                <select id="adjuntarPresupuesto">
+                  <option value="no">No</option>
+                  <option value="si">Sí – indicar número</option>
+                </select>
+              </div>
+              <div class="form-group hidden" id="numPresupuestoGroup">
+                <label>Número de presupuesto</label>
+                <input type="text" id="numPresupuesto" placeholder="Ej: PRES-2026-045"/>
+              </div>
+              <div class="form-group">
+                <label>Observaciones generales</label>
+                <textarea id="observaciones" placeholder="Cualquier incidencia o nota relevante..."></textarea>
+              </div>
+            </div>
+
+            <!-- PASO 4: Firma -->
+            <div class="step" id="step4">
+              <div class="form-section-title">4. Confirmación y firma</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem">
+                <div>
+                  <label class="font-bold text-sm" style="display:block; margin-bottom:.5rem">Firma del técnico</label>
+                  <canvas class="firma-pad" id="firmaTecnico" width="300" height="150"></canvas>
+                  <button type="button" class="btn btn-ghost btn-sm mt-1" onclick="limpiarFirma('firmaTecnico')">Borrar</button>
+                </div>
+                <div>
+                  <label class="font-bold text-sm" style="display:block; margin-bottom:.5rem">Firma del cliente</label>
+                  <canvas class="firma-pad" id="firmaCliente" width="300" height="150"></canvas>
+                  <button type="button" class="btn btn-ghost btn-sm mt-1" onclick="limpiarFirma('firmaCliente')">Borrar</button>
+                </div>
+              </div>
+              <div class="form-group mt-2">
+                <label>Hora de finalización</label>
+                <input type="time" id="horaFin"/>
+              </div>
+            </div>
+
+            <!-- BOTONES NAVEGACIÓN -->
+            <div style="display:flex; justify-content:space-between; margin-top:1.5rem; gap:.75rem">
+              <button class="btn btn-ghost" id="btnAnterior" onclick="pasoAnterior()">← Anterior</button>
+              <button class="btn btn-primary" id="btnSiguiente" onclick="pasoSiguiente()">Siguiente →</button>
+              <button class="btn btn-success hidden" id="btnGuardar" onclick="guardarInforme()">✓ Guardar informe</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="index.html"       class="bottom-nav-item"><span class="icon">📊</span>Dashboard</a>
+    <a href="contratos.html"   class="bottom-nav-item"><span class="icon">📋</span>Contratos</a>
+    <a href="visitas.html"     class="bottom-nav-item"><span class="icon">📅</span>Visitas</a>
+    <a href="incidencias.html" class="bottom-nav-item"><span class="icon">🚨</span>Alertas</a>
+    <a href="facturacion.html" class="bottom-nav-item"><span class="icon">💶</span>Cobros</a>
+  </div>
+</nav>
+
+<script src="app.js"></script>
+<script>
+let pasoActual = 1;
+const totalPasos = 4;
+let contratoSeleccionado = null;
+const checklist = {};
+
+// BÚSQUEDA CONTRATO
+document.getElementById('buscarContrato').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  const lista = db.contratos().filter(c =>
+    `${c.cliente.nombre} ${c.cliente.nif} ${c.numero}`.toLowerCase().includes(q)
+  );
+  document.getElementById('listaContratos').innerHTML = lista.length ? `
+    <ul style="list-style:none; border:1.5px solid var(--gray-mid); border-radius:var(--radius); overflow:hidden">
+      ${lista.map(c=>`
+        <li onclick="seleccionarContrato('${c.id}')" style="padding:.85rem 1rem; border-bottom:1px solid var(--gray-mid); cursor:pointer; display:flex; justify-content:space-between; align-items:center" onmouseover="this.style.background='var(--gray-light)'" onmouseout="this.style.background=''">
+          <div>
+            <div class="font-bold">${c.cliente.nombre}</div>
+            <div class="text-sm text-gray">CTR-${c.numero} · ${c.direccionInstalacion}</div>
+          </div>
+          <div class="text-sm text-gray">${c.numToldos}T ${c.numPergolas}P</div>
+        </li>`).join('')}
+    </ul>` : '<div class="text-sm text-gray">Sin resultados</div>';
+});
+
+function seleccionarContrato(id) {
+  contratoSeleccionado = db.contrato(id);
+  const c = contratoSeleccionado;
+
+  document.getElementById('selectorContrato').classList.add('hidden');
+  document.getElementById('formInforme').classList.remove('hidden');
+
+  document.getElementById('infoContrato').innerHTML = `
+    <strong>CTR-${c.numero}</strong> · ${c.cliente.nombre}<br>
+    <span style="color:var(--gray)">${c.direccionInstalacion} · ${c.numToldos} toldos · ${c.numPergolas} pérgolas</span>`;
+
+  // Fecha hoy por defecto
+  document.getElementById('fechaVisita').value = new Date().toISOString().split('T')[0];
+  document.getElementById('horaLlegada').value = new Date().toTimeString().slice(0,5);
+
+  // Técnicos
+  const sel = document.getElementById('tecnicoVisita');
+  db.tecnicos().forEach(t => {
+    const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o);
+  });
+
+  // Checklist por producto
+  const div = document.getElementById('checklistProductos');
+  div.innerHTML = '';
+  (c.productos || []).forEach((prod, pi) => {
+    const key = `prod_${pi}`;
+    checklist[key] = {};
+    const items = [
+      ['anclajes',   'Anclajes y estructura (apriete/par)'],
+      ['brazos',     'Brazos/articulaciones (holguras, topes)'],
+      ['eje',        'Eje y cojinetes'],
+      ['lona',       'Lona (tensión, costuras, desgarros)'],
+      ['motor',      'Motor (ruidos, par, fin de carrera)'],
+      ['sensor',     'Sensor viento/sol/lluvia (test)'],
+      ['mando',      'Mando/programación'],
+      ['electricidad','Electricidad (conexiones, protección)'],
+      ['limpAlum',   'Limpieza ligera aluminio'],
+      ['limpLona',   'Limpieza ligera lona (sup/inf)'],
+    ];
+    div.innerHTML += `
+      <div class="producto-check">
+        <div class="producto-header">
+          <span>${prod.cantidad}x ${prod.tipo} – ${prod.ubicacion}</span>
+          <span style="font-size:.78rem; opacity:.8">${prod.idEtiqueta}</span>
+        </div>
+        <ul class="checklist" style="background:white">
+          ${items.map(([id,label])=>`
+            <li class="checklist-item">
+              <span class="checklist-label">${label}</span>
+              <div class="checklist-options">
+                <button type="button" class="check-btn ok"    onclick="marcarCheck('${key}','${id}','ok',this)"    >✓ OK</button>
+                <button type="button" class="check-btn atenc" onclick="marcarCheck('${key}','${id}','atenc',this)" >⚠️</button>
+                <button type="button" class="check-btn no"    onclick="marcarCheck('${key}','${id}','no',this)"    >✕</button>
+              </div>
+            </li>`).join('')}
+        </ul>
+        <div style="padding:.75rem 1rem; border-top:1px solid var(--gray-mid)">
+          <label class="text-sm font-bold">Observaciones específicas</label>
+          <textarea style="margin-top:.35rem" rows="2" id="obs_${key}" placeholder="Notas sobre esta unidad..."></textarea>
+        </div>
+      </div>`;
+  });
+}
+
+function marcarCheck(prod, item, valor, btn) {
+  if (!checklist[prod]) checklist[prod] = {};
+  checklist[prod][item] = valor;
+  // Quitar selected de hermanos
+  btn.closest('.checklist-options').querySelectorAll('.check-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// PASOS
+function actualizarUI() {
+  document.querySelectorAll('.step').forEach((s,i) => s.classList.toggle('active', i+1 === pasoActual));
+  document.getElementById('stepLabel').textContent = `Paso ${pasoActual} de ${totalPasos}`;
+  document.getElementById('progressFill').style.width = `${(pasoActual/totalPasos)*100}%`;
+  document.getElementById('btnAnterior').style.visibility = pasoActual === 1 ? 'hidden' : 'visible';
+  document.getElementById('btnSiguiente').classList.toggle('hidden', pasoActual === totalPasos);
+  document.getElementById('btnGuardar').classList.toggle('hidden', pasoActual !== totalPasos);
+}
+
+function pasoSiguiente() { if (pasoActual < totalPasos) { pasoActual++; actualizarUI(); window.scrollTo(0,0); } }
+function pasoAnterior()  { if (pasoActual > 1) { pasoActual--; actualizarUI(); window.scrollTo(0,0); } }
+
+// FIRMAS
+function initFirma(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  const getPos = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return [src.clientX - r.left, src.clientY - r.top];
+  };
+  const start = (e) => { e.preventDefault(); drawing = true; ctx.beginPath(); const [x,y]=getPos(e); ctx.moveTo(x,y); };
+  const move  = (e) => { e.preventDefault(); if(!drawing)return; const [x,y]=getPos(e); ctx.lineTo(x,y); ctx.strokeStyle='#111'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke(); };
+  const end   = (e) => { drawing = false; };
+  canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move); canvas.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',end);
+}
+
+function limpiarFirma(id) {
+  const c = document.getElementById(id);
+  c.getContext('2d').clearRect(0,0,c.width,c.height);
+}
+
+// GUARDAR INFORME
+function guardarInforme() {
+  const c = contratoSeleccionado;
+  const informe = {
+    contratoId: c.id,
+    fecha: document.getElementById('fechaVisita').value,
+    tecnico: document.getElementById('tecnicoVisita').value,
+    tipo: document.getElementById('tipoVisita').value,
+    horaLlegada: document.getElementById('horaLlegada').value,
+    horaFin: document.getElementById('horaFin').value,
+    checklist: JSON.parse(JSON.stringify(checklist)),
+    accionPreventivo: document.getElementById('accionPreventivo').value,
+    piezaSustituida: document.getElementById('piezaSustituida').value,
+    importePieza: parseFloat(document.getElementById('importePieza').value)||0,
+    tiempoPrev: parseFloat(document.getElementById('tiempoPrev').value)||0,
+    tiempoCorr: parseFloat(document.getElementById('tiempoCorr').value)||0,
+    recomendaciones: document.getElementById('recomendaciones').value,
+    observaciones: document.getElementById('observaciones').value,
+    firmaTecnico: document.getElementById('firmaTecnico').toDataURL(),
+    firmaCliente: document.getElementById('firmaCliente').toDataURL(),
+    creadoEn: new Date().toISOString()
+  };
+
+  // Guardar visita con informe
+  nuevaVisita({ contratoId: c.id, tipo: informe.tipo, fecha: informe.fecha,
+    fechaRealizada: informe.fecha, tecnico: informe.tecnico,
+    estado: 'realizada', informe, notas: informe.observaciones });
+
+  // Actualizar próxima revisión del contrato (+1 año)
+  const proxFecha = new Date(informe.fecha);
+  proxFecha.setFullYear(proxFecha.getFullYear()+1);
+  actualizarContrato(c.id, { fechaProximaRevision: proxFecha.toISOString().split('T')[0] });
+
+  toast('Informe guardado correctamente ✓', 'success');
+  setTimeout(() => window.location.href = 'visitas.html', 1500);
+}
+
+// Check presupuesto
+document.addEventListener('DOMContentLoaded', () => {
+  initFirma('firmaTecnico');
+  initFirma('firmaCliente');
+
+  // Desde URL param
+  const params = new URLSearchParams(location.search);
+  const cid = params.get('contrato');
+  if (cid) seleccionarContrato(cid);
+
+  document.getElementById('adjuntarPresupuesto').addEventListener('change', function() {
+    document.getElementById('numPresupuestoGroup').classList.toggle('hidden', this.value==='no');
+  });
+});
+</script>
+</body>
+</html>

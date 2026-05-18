@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visitas – Toldos Porriño</title>
+  <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand">Toldos Porriño</div><div class="sub">Gestión de Mantenimiento</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="index.html"          class="nav-link"><span class="icon">📊</span> Dashboard</a>
+      <a href="contratos.html"      class="nav-link"><span class="icon">📋</span> Contratos</a>
+      <a href="visitas.html"        class="nav-link"><span class="icon">📅</span> Visitas</a>
+      <a href="incidencias.html"    class="nav-link"><span class="icon">🚨</span> Incidencias</a>
+      <a href="facturacion.html"    class="nav-link"><span class="icon">💶</span> Facturación</a>
+      <div class="nav-section">Acciones</div>
+      <a href="nuevo-contrato.html" class="nav-link"><span class="icon">➕</span> Nuevo contrato</a>
+      <a href="informe.html"        class="nav-link"><span class="icon">📝</span> Nuevo informe</a>
+    </nav>
+    <div class="sidebar-footer">v1.0 · 2026</div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">📅 Visitas y Revisiones</span>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="abrirNuevaVisita()">➕ Programar visita</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="filters">
+        <input class="filter-input" type="search" id="buscar" placeholder="🔍 Buscar cliente..."/>
+        <select class="filter-input" id="filtroEstado">
+          <option value="">Todos los estados</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="realizada">Realizada</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+        <select class="filter-input" id="filtroTipo">
+          <option value="">Todos los tipos</option>
+          <option value="preventiva">Preventiva</option>
+          <option value="correctiva">Correctiva</option>
+          <option value="alta">Alta</option>
+        </select>
+        <input class="filter-input" type="month" id="filtroMes" title="Filtrar por mes"/>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:1rem" id="kpisVis"></div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Cliente</th><th>Dirección</th><th>Tipo</th><th>Fecha</th><th>Técnico</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="tbodyVis"></tbody>
+          </table>
+        </div>
+        <div id="emptyVis" class="hidden"><div class="empty-state"><div class="icon">📅</div><p>Sin visitas que mostrar</p></div></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="index.html"       class="bottom-nav-item"><span class="icon">📊</span>Dashboard</a>
+    <a href="contratos.html"   class="bottom-nav-item"><span class="icon">📋</span>Contratos</a>
+    <a href="visitas.html"     class="bottom-nav-item active"><span class="icon">📅</span>Visitas</a>
+    <a href="incidencias.html" class="bottom-nav-item"><span class="icon">🚨</span>Alertas</a>
+    <a href="facturacion.html" class="bottom-nav-item"><span class="icon">💶</span>Cobros</a>
+  </div>
+</nav>
+
+<!-- MODAL NUEVA VISITA -->
+<div class="modal-overlay" id="modalNuevaVis">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📅 Programar visita</h3>
+      <button class="modal-close" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Contrato <span class="req">*</span></label>
+      <select id="visContrato"><option value="">Seleccionar...</option></select>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Fecha <span class="req">*</span></label>
+        <input type="date" id="visFecha"/>
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="visTipo">
+          <option value="preventiva">Preventiva anual</option>
+          <option value="correctiva">Correctiva</option>
+          <option value="alta">Visita de alta</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Técnico</label>
+      <select id="visTecnico"><option value="">Sin asignar</option></select>
+    </div>
+    <div class="form-group">
+      <label>Notas</label>
+      <textarea id="visNotas" rows="2" placeholder="Instrucciones de acceso, contacto en obra..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full mt-2" onclick="guardarNuevaVisita()">Programar visita</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+function render() {
+  const buscar = document.getElementById('buscar').value.toLowerCase();
+  const estado = document.getElementById('filtroEstado').value;
+  const tipo   = document.getElementById('filtroTipo').value;
+  const mes    = document.getElementById('filtroMes').value;
+  const all    = db.visitas();
+
+  const pend  = all.filter(v=>v.estado==='pendiente').length;
+  const real  = all.filter(v=>v.estado==='realizada').length;
+  const venc  = all.filter(v=>v.estado==='pendiente' && diasHasta(v.fecha) < 0).length;
+  document.getElementById('kpisVis').innerHTML = `
+    <div class="kpi kpi-yellow"><div class="kpi-label">Pendientes</div><div class="kpi-value">${pend}</div></div>
+    <div class="kpi kpi-green"><div class="kpi-label">Realizadas</div><div class="kpi-value">${real}</div></div>
+    <div class="kpi kpi-red"><div class="kpi-label">Vencidas</div><div class="kpi-value">${venc}</div></div>
+  `;
+
+  let lista = all.filter(v => {
+    const c = db.contrato(v.contratoId);
+    const txt = `${c?.cliente.nombre||''} ${v.tecnico||''}`.toLowerCase();
+    if (buscar && !txt.includes(buscar)) return false;
+    if (estado && v.estado !== estado) return false;
+    if (tipo   && v.tipo   !== tipo)   return false;
+    if (mes    && !v.fecha.startsWith(mes)) return false;
+    return true;
+  }).sort((a,b) => new Date(a.fecha)-new Date(b.fecha));
+
+  const tbody = document.getElementById('tbodyVis');
+  const empty = document.getElementById('emptyVis');
+  if (!lista.length) { tbody.innerHTML=''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  tbody.innerHTML = lista.map(v => {
+    const c = db.contrato(v.contratoId);
+    const dias = diasHasta(v.fecha);
+    const fechaCls = v.estado==='pendiente' && dias < 0 ? 'text-red' : v.estado==='pendiente' && dias <= 7 ? 'sla-warn' : '';
+    const tipoMap = { preventiva:'🔧 Preventiva', correctiva:'🔨 Correctiva', alta:'🆕 Alta' };
+    return `<tr>
+      <td class="font-bold text-sm">${v.id}</td>
+      <td>
+        <div class="font-bold" style="font-size:.88rem">${c?.cliente.nombre||v.contratoId}</div>
+        <div class="text-sm text-gray">${c?.cliente.telefono||''}</div>
+      </td>
+      <td class="text-sm">${c?.direccionInstalacion||''}</td>
+      <td class="text-sm">${tipoMap[v.tipo]||v.tipo}</td>
+      <td class="${fechaCls} font-bold text-sm">
+        ${formatFecha(v.fecha)}
+        ${v.estado==='pendiente' && dias < 0 ? '<br><span style="font-size:.72rem">⚠️ Vencida</span>' : v.estado==='pendiente' && dias===0 ? '<br><span style="font-size:.72rem; color:var(--orange)">Hoy</span>' : ''}
+      </td>
+      <td class="text-sm">${v.tecnico||'<span class="text-gray">Sin asignar</span>'}</td>
+      <td>${badgeEstado(v.estado)}</td>
+      <td>
+        <div class="td-actions">
+          ${v.estado==='pendiente' ? `<a href="informe.html?contrato=${v.contratoId}" class="btn btn-primary btn-sm">📝 Informe</a>` : ''}
+          ${v.estado==='pendiente' ? `<button class="btn btn-ghost btn-sm" onclick="avisar('${v.contratoId}')">📱</button>` : ''}
+          ${v.estado==='pendiente' ? `<button class="btn btn-danger btn-sm" onclick="cancelarVisita('${v.id}')">✕</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function abrirNuevaVisita() {
+  const sel = document.getElementById('visContrato');
+  sel.innerHTML = '<option value="">Seleccionar...</option>';
+  db.contratos().filter(c=>c.estado==='activo').forEach(c => {
+    const o = document.createElement('option'); o.value=c.id; o.textContent=`CTR-${c.numero} · ${c.cliente.nombre}`; sel.appendChild(o);
+  });
+  const selT = document.getElementById('visTecnico');
+  selT.innerHTML = '<option value="">Sin asignar</option>';
+  db.tecnicos().forEach(t => { const o=document.createElement('option'); o.value=t; o.textContent=t; selT.appendChild(o); });
+  document.getElementById('visFecha').value = '';
+  document.getElementById('modalNuevaVis').classList.add('open');
+}
+
+function guardarNuevaVisita() {
+  const cid   = document.getElementById('visContrato').value;
+  const fecha = document.getElementById('visFecha').value;
+  if (!cid || !fecha) return toast('Contrato y fecha son obligatorios','error');
+  nuevaVisita({
+    contratoId: cid, tipo: document.getElementById('visTipo').value,
+    fecha, fechaRealizada: null,
+    tecnico: document.getElementById('visTecnico').value,
+    estado: 'pendiente', informe: null,
+    notas: document.getElementById('visNotas').value
+  });
+  cerrarModal();
+  toast('Visita programada ✓');
+  render();
+}
+
+function cancelarVisita(id) {
+  if (!confirmar('¿Cancelar esta visita?')) return;
+  actualizarVisita(id, { estado: 'cancelada' });
+  toast('Visita cancelada');
+  render();
+}
+
+function avisar(cid) {
+  const c = db.contrato(cid);
+  const config = db.config();
+  alertaWhatsApp(c.cliente.telefono, `Hola ${c.cliente.nombre.split(',')[0]}, le recordamos que tiene una revisión de mantenimiento programada próximamente. Por favor, confirme disponibilidad. ${config.empresa} · ${config.telefono}`);
+}
+
+function cerrarModal() { document.getElementById('modalNuevaVis').classList.remove('open'); }
+document.getElementById('modalNuevaVis').addEventListener('click', function(e){ if(e.target===this)cerrarModal(); });
+
+['buscar','filtroEstado','filtroTipo','filtroMes'].forEach(id => document.getElementById(id).addEventListener('input', render));
+render();
+</script>
+</body>
+</html>

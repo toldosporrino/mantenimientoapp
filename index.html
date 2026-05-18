@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – Toldos Porriño Mantenimiento</title>
+  <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">Toldos Porriño</div>
+      <div class="sub">Gestión de Mantenimiento</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="index.html"         class="nav-link"><span class="icon">📊</span> Dashboard</a>
+      <a href="contratos.html"     class="nav-link"><span class="icon">📋</span> Contratos</a>
+      <a href="visitas.html"       class="nav-link"><span class="icon">📅</span> Visitas</a>
+      <a href="incidencias.html"   class="nav-link"><span class="icon">🚨</span> Incidencias</a>
+      <a href="facturacion.html"   class="nav-link"><span class="icon">💶</span> Facturación</a>
+      <div class="nav-section">Acciones</div>
+      <a href="nuevo-contrato.html" class="nav-link"><span class="icon">➕</span> Nuevo contrato</a>
+      <a href="informe.html"        class="nav-link"><span class="icon">📝</span> Nuevo informe</a>
+    </nav>
+    <div class="sidebar-footer">v1.0 · 2026</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">Dashboard</span>
+      <div class="topbar-actions">
+        <a href="nuevo-contrato.html" class="btn btn-primary btn-sm">➕ Nuevo contrato</a>
+      </div>
+    </header>
+
+    <main class="page" id="page">
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpis"></div>
+
+      <!-- GRID 2 columnas -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;" id="grid2">
+
+        <!-- Próximas visitas -->
+        <div class="card">
+          <div class="card-header">
+            <h2>📅 Próximas visitas</h2>
+            <a href="visitas.html" class="btn btn-ghost btn-sm">Ver todas</a>
+          </div>
+          <div id="proximasVisitas"></div>
+        </div>
+
+        <!-- Incidencias abiertas -->
+        <div class="card">
+          <div class="card-header">
+            <h2>🚨 Incidencias abiertas</h2>
+            <a href="incidencias.html" class="btn btn-ghost btn-sm">Ver todas</a>
+          </div>
+          <div id="incidenciasAbiertas"></div>
+        </div>
+      </div>
+
+      <!-- Renovaciones próximas -->
+      <div class="card section-gap">
+        <div class="card-header">
+          <h2>💶 Renovaciones pendientes (próximos 60 días)</h2>
+          <a href="facturacion.html" class="btn btn-ghost btn-sm">Ver todas</a>
+        </div>
+        <div id="renovaciones"></div>
+      </div>
+
+      <!-- Contratos recientes -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 Contratos activos recientes</h2>
+          <a href="contratos.html" class="btn btn-ghost btn-sm">Ver todos</a>
+        </div>
+        <div class="table-wrap" id="contratosRecientes"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="index.html"       class="bottom-nav-item active"><span class="icon">📊</span>Dashboard</a>
+    <a href="contratos.html"   class="bottom-nav-item"><span class="icon">📋</span>Contratos</a>
+    <a href="visitas.html"     class="bottom-nav-item"><span class="icon">📅</span>Visitas</a>
+    <a href="incidencias.html" class="bottom-nav-item"><span class="icon">🚨</span>Alertas</a>
+    <a href="facturacion.html" class="bottom-nav-item"><span class="icon">💶</span>Cobros</a>
+  </div>
+</nav>
+
+<script src="app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const contratos   = db.contratos();
+  const visitas     = db.visitas();
+  const incidencias = db.incidencias();
+
+  const activos     = contratos.filter(c => c.estado === 'activo');
+  const pendVisitas = visitas.filter(v => v.estado === 'pendiente');
+  const abiertas    = incidencias.filter(i => i.estado === 'abierta' || i.estado === 'en_curso');
+  const ingresos    = activos.reduce((s,c) => s + (c.importeAnualTotal||0), 0);
+
+  // KPIs
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi kpi-blue"><div class="kpi-label">Contratos activos</div><div class="kpi-value">${activos.length}</div><div class="kpi-sub">de ${contratos.length} totales</div></div>
+    <div class="kpi kpi-yellow"><div class="kpi-label">Visitas pendientes</div><div class="kpi-value">${pendVisitas.length}</div><div class="kpi-sub">próximos 3 meses</div></div>
+    <div class="kpi kpi-red"><div class="kpi-label">Incidencias abiertas</div><div class="kpi-value">${abiertas.length}</div><div class="kpi-sub">requieren atención</div></div>
+    <div class="kpi kpi-green"><div class="kpi-label">Ingresos anuales</div><div class="kpi-value" style="font-size:1.4rem">${fmt(ingresos)}</div><div class="kpi-sub">sin IVA</div></div>
+  `;
+
+  // Próximas visitas
+  const prox = pendVisitas
+    .sort((a,b) => new Date(a.fecha)-new Date(b.fecha))
+    .slice(0,5);
+  if (!prox.length) {
+    document.getElementById('proximasVisitas').innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>Sin visitas pendientes</p></div>';
+  } else {
+    document.getElementById('proximasVisitas').innerHTML = `
+      <ul style="list-style:none">
+        ${prox.map(v => {
+          const c = db.contrato(v.contratoId);
+          const dias = diasHasta(v.fecha);
+          const cls = dias < 0 ? 'text-red' : dias <= 7 ? 'sla-warn' : 'text-gray';
+          return `<li style="padding:.75rem 1.25rem; border-bottom:1px solid var(--gray-mid); display:flex; justify-content:space-between; align-items:center; gap:.5rem">
+            <div>
+              <div class="font-bold" style="font-size:.88rem">${c ? c.cliente.nombre : v.contratoId}</div>
+              <div class="text-sm text-gray">${v.tecnico || 'Sin asignar'}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="font-bold ${cls}" style="font-size:.85rem">${formatFecha(v.fecha)}</div>
+              <div class="text-sm ${cls}">${dias < 0 ? '⚠️ Vencida' : dias === 0 ? 'Hoy' : `En ${dias}d`}</div>
+            </div>
+          </li>`;
+        }).join('')}
+      </ul>`;
+  }
+
+  // Incidencias abiertas
+  if (!abiertas.length) {
+    document.getElementById('incidenciasAbiertas').innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>Sin incidencias abiertas</p></div>';
+  } else {
+    document.getElementById('incidenciasAbiertas').innerHTML = `
+      <ul style="list-style:none">
+        ${abiertas.slice(0,5).map(i => {
+          const c = db.contrato(i.contratoId);
+          const h = horasHasta(i.slaVencimiento);
+          const slaClass = h < 0 ? 'sla-urgent' : h < 8 ? 'sla-warn' : 'sla-ok';
+          const slaTxt = h < 0 ? `⚠️ SLA vencido` : `SLA: ${h}h`;
+          return `<li style="padding:.75rem 1.25rem; border-bottom:1px solid var(--gray-mid); display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem">
+            <div>
+              <div class="font-bold" style="font-size:.85rem">${i.id} · ${c ? c.cliente.nombre : ''}</div>
+              <div class="text-sm text-gray" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${i.descripcion}</div>
+            </div>
+            <div class="text-sm ${slaClass}" style="white-space:nowrap">${slaTxt}</div>
+          </li>`;
+        }).join('')}
+      </ul>`;
+  }
+
+  // Renovaciones próximas 60 días
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const en60 = new Date(hoy); en60.setDate(en60.getDate()+60);
+  const renov = activos.filter(c => {
+    if (!c.fechaRenovacion) return false;
+    const d = new Date(c.fechaRenovacion);
+    return d >= hoy && d <= en60;
+  });
+  if (!renov.length) {
+    document.getElementById('renovaciones').innerHTML = '<div class="empty-state"><div class="icon">💶</div><p>Sin renovaciones en los próximos 60 días</p></div>';
+  } else {
+    document.getElementById('renovaciones').innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Cliente</th><th>Renovación</th><th>Importe (sin IVA)</th><th>Método de pago</th><th></th></tr></thead>
+        <tbody>${renov.map(c=>`
+          <tr>
+            <td class="font-bold">${c.cliente.nombre}</td>
+            <td>${formatFecha(c.fechaRenovacion)}</td>
+            <td class="font-bold">${fmt(c.importeRenovacion)}</td>
+            <td>${c.metodoPago === 'sepa' ? '🏦 SEPA' : '🔄 Transferencia'}</td>
+            <td><a href="contratos.html" class="btn btn-ghost btn-sm">Ver</a></td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>`;
+  }
+
+  // Contratos recientes
+  const recientes = activos.slice(-5).reverse();
+  document.getElementById('contratosRecientes').innerHTML = `
+    <table>
+      <thead><tr><th>Nº</th><th>Cliente</th><th>Productos</th><th>Próxima revisión</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${recientes.map(c=>`
+        <tr>
+          <td class="font-bold">CTR-${c.numero}</td>
+          <td>${c.cliente.nombre}</td>
+          <td>${c.numToldos}T · ${c.numPergolas}P</td>
+          <td>${formatFecha(c.fechaProximaRevision)}</td>
+          <td>${badgeEstado(c.estado)}</td>
+          <td><a href="contratos.html" class="btn btn-ghost btn-sm">Ver</a></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+});
+</script>
+</body>
+</html>

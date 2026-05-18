@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Facturación – Toldos Porriño</title>
+  <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand">Toldos Porriño</div><div class="sub">Gestión de Mantenimiento</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="index.html"          class="nav-link"><span class="icon">📊</span> Dashboard</a>
+      <a href="contratos.html"      class="nav-link"><span class="icon">📋</span> Contratos</a>
+      <a href="visitas.html"        class="nav-link"><span class="icon">📅</span> Visitas</a>
+      <a href="incidencias.html"    class="nav-link"><span class="icon">🚨</span> Incidencias</a>
+      <a href="facturacion.html"    class="nav-link"><span class="icon">💶</span> Facturación</a>
+      <div class="nav-section">Acciones</div>
+      <a href="nuevo-contrato.html" class="nav-link"><span class="icon">➕</span> Nuevo contrato</a>
+      <a href="informe.html"        class="nav-link"><span class="icon">📝</span> Nuevo informe</a>
+    </nav>
+    <div class="sidebar-footer">v1.0 · 2026</div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">💶 Facturación y Renovaciones</span>
+    </header>
+
+    <main class="page">
+      <!-- KPIs económicos -->
+      <div class="kpi-grid" id="kpisFac" style="margin-bottom:1.5rem"></div>
+
+      <!-- Pestañas -->
+      <div style="display:flex; gap:0; border-bottom:2px solid var(--gray-mid); margin-bottom:1.25rem">
+        <button class="tab-btn active" data-tab="renovaciones" onclick="cambiarTab(this)">🔄 Renovaciones</button>
+        <button class="tab-btn" data-tab="todos"        onclick="cambiarTab(this)">📋 Todos los contratos</button>
+        <button class="tab-btn" data-tab="impagados"    onclick="cambiarTab(this)">⚠️ Impagados</button>
+      </div>
+
+      <!-- TAB: RENOVACIONES -->
+      <div id="tab-renovaciones">
+        <div class="filters">
+          <select class="filter-input" id="filtroMesRen">
+            <option value="">Todos los períodos</option>
+            <option value="30">Próximos 30 días</option>
+            <option value="60">Próximos 60 días</option>
+            <option value="90">Próximos 90 días</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>Contratos con renovación próxima</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Contrato</th><th>Cliente</th><th>Método pago</th><th>Renovación</th><th>Importe (sin IVA)</th><th>Importe + IVA</th><th>Acciones</th></tr></thead>
+              <tbody id="tbodyRen"></tbody>
+            </table>
+          </div>
+          <div id="emptyRen" class="hidden"><div class="empty-state"><div class="icon">✅</div><p>Sin renovaciones en el período seleccionado</p></div></div>
+        </div>
+      </div>
+
+      <!-- TAB: TODOS -->
+      <div id="tab-todos" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Resumen económico – todos los contratos activos</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Contrato</th><th>Cliente</th><th>Base</th><th>Motores</th><th>Sensores</th><th>Total anual (sin IVA)</th><th>Método pago</th><th>Renovación</th></tr></thead>
+              <tbody id="tbodyTodos"></tbody>
+              <tfoot id="tfootTodos"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: IMPAGADOS -->
+      <div id="tab-impagados" class="hidden">
+        <div class="card">
+          <div class="card-header"><h2>Contratos suspendidos o con pago pendiente</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Contrato</th><th>Cliente</th><th>Estado</th><th>Importe</th><th>Acciones</th></tr></thead>
+              <tbody id="tbodyImp"></tbody>
+            </table>
+          </div>
+          <div id="emptyImp" class="hidden"><div class="empty-state"><div class="icon">🎉</div><p>Sin impagados. ¡Todo al día!</p></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="index.html"       class="bottom-nav-item"><span class="icon">📊</span>Dashboard</a>
+    <a href="contratos.html"   class="bottom-nav-item"><span class="icon">📋</span>Contratos</a>
+    <a href="visitas.html"     class="bottom-nav-item"><span class="icon">📅</span>Visitas</a>
+    <a href="incidencias.html" class="bottom-nav-item"><span class="icon">🚨</span>Alertas</a>
+    <a href="facturacion.html" class="bottom-nav-item active"><span class="icon">💶</span>Cobros</a>
+  </div>
+</nav>
+
+<style>
+.tab-btn {
+  padding: .65rem 1.25rem;
+  background: none;
+  border: none;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--gray);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.tab-btn:hover  { color: var(--blue); }
+</style>
+
+<script src="app.js"></script>
+<script>
+const IVA = 0.21;
+
+function renderKPIs() {
+  const activos = db.contratos().filter(c=>c.estado==='activo');
+  const totalAnual = activos.reduce((s,c)=>s+(c.importeAnualTotal||0),0);
+  const totalIVA   = totalAnual * (1+IVA);
+  const sepa       = activos.filter(c=>c.metodoPago==='sepa').length;
+  const transf     = activos.filter(c=>c.metodoPago==='transferencia').length;
+  const suspendidos= db.contratos().filter(c=>c.estado==='suspendido').length;
+
+  document.getElementById('kpisFac').innerHTML = `
+    <div class="kpi kpi-green"><div class="kpi-label">Ingresos anuales (sin IVA)</div><div class="kpi-value" style="font-size:1.5rem">${fmt(totalAnual)}</div></div>
+    <div class="kpi kpi-green"><div class="kpi-label">Ingresos anuales (con IVA)</div><div class="kpi-value" style="font-size:1.5rem">${fmt(totalIVA)}</div></div>
+    <div class="kpi kpi-blue"><div class="kpi-label">Domiciliados SEPA</div><div class="kpi-value">${sepa}</div><div class="kpi-sub">contratos automáticos</div></div>
+    <div class="kpi kpi-yellow"><div class="kpi-label">Por transferencia</div><div class="kpi-value">${transf}</div><div class="kpi-sub">requieren seguimiento</div></div>
+    ${suspendidos ? `<div class="kpi kpi-red"><div class="kpi-label">Suspendidos</div><div class="kpi-value">${suspendidos}</div></div>` : ''}
+  `;
+}
+
+function renderRenovaciones() {
+  const dias = parseInt(document.getElementById('filtroMesRen').value)||999;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const limite = new Date(hoy); limite.setDate(limite.getDate()+dias);
+
+  const lista = db.contratos().filter(c => {
+    if (c.estado !== 'activo') return false;
+    if (!c.fechaRenovacion) return false;
+    const d = new Date(c.fechaRenovacion);
+    return d >= hoy && d <= limite;
+  }).sort((a,b)=>new Date(a.fechaRenovacion)-new Date(b.fechaRenovacion));
+
+  const tbody = document.getElementById('tbodyRen');
+  const empty = document.getElementById('emptyRen');
+  if (!lista.length) { tbody.innerHTML=''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  tbody.innerHTML = lista.map(c => {
+    const diasRen = diasHasta(c.fechaRenovacion);
+    const cls = diasRen <= 7 ? 'sla-urgent' : diasRen <= 30 ? 'sla-warn' : 'sla-ok';
+    return `<tr>
+      <td class="font-bold">CTR-${c.numero}</td>
+      <td>
+        <div class="font-bold">${c.cliente.nombre}</div>
+        <div class="text-sm text-gray">${c.cliente.email}</div>
+      </td>
+      <td>${c.metodoPago==='sepa'?'🏦 SEPA domiciliación':'🔄 Transferencia'}</td>
+      <td class="${cls} font-bold">${formatFecha(c.fechaRenovacion)}<br><span class="text-sm">En ${diasRen}d</span></td>
+      <td class="font-bold">${fmt(c.importeRenovacion)}</td>
+      <td class="font-bold" style="color:var(--green)">${fmt(c.importeRenovacion*(1+IVA))}</td>
+      <td>
+        <div class="td-actions">
+          <button class="btn btn-ghost btn-sm" onclick="avisarRenovacion('${c.id}')">📱 Avisar</button>
+          <button class="btn btn-success btn-sm" onclick="marcarPagado('${c.id}')">✓ Cobrado</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTodos() {
+  const activos = db.contratos().filter(c=>c.estado==='activo');
+  const total = activos.reduce((s,c)=>s+(c.importeAnualTotal||0),0);
+
+  document.getElementById('tbodyTodos').innerHTML = activos.map(c=>`
+    <tr>
+      <td class="font-bold">CTR-${c.numero}</td>
+      <td>${c.cliente.nombre}</td>
+      <td class="text-sm">${fmt(c.importeAnualBase)}</td>
+      <td class="text-sm">${fmt(c.importeMotores)}</td>
+      <td class="text-sm">${fmt(c.importeSensores)}</td>
+      <td class="font-bold">${fmt(c.importeAnualTotal)}</td>
+      <td class="text-sm">${c.metodoPago==='sepa'?'🏦 SEPA':'🔄 Transf.'}</td>
+      <td class="text-sm">${formatFecha(c.fechaRenovacion)}</td>
+    </tr>`).join('');
+
+  document.getElementById('tfootTodos').innerHTML = `
+    <tr style="background:var(--gray-light); font-weight:700">
+      <td colspan="5">TOTAL ANUAL (sin IVA)</td>
+      <td style="color:var(--green)">${fmt(total)}</td>
+      <td colspan="2" style="color:var(--green)">+IVA: ${fmt(total*(1+IVA))}</td>
+    </tr>`;
+}
+
+function renderImpagados() {
+  const lista = db.contratos().filter(c=>c.estado==='suspendido'||c.estado==='pendiente');
+  const tbody = document.getElementById('tbodyImp');
+  const empty = document.getElementById('emptyImp');
+  if (!lista.length) { tbody.innerHTML=''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  tbody.innerHTML = lista.map(c=>`
+    <tr>
+      <td class="font-bold">CTR-${c.numero}</td>
+      <td>
+        <div class="font-bold">${c.cliente.nombre}</div>
+        <div class="text-sm"><a href="tel:${c.cliente.telefono}" style="color:var(--blue)">${c.cliente.telefono}</a></div>
+      </td>
+      <td>${badgeEstado(c.estado)}</td>
+      <td class="font-bold">${fmt(c.importeAnualTotal)}</td>
+      <td>
+        <div class="td-actions">
+          <button class="btn btn-ghost btn-sm" onclick="avisarRenovacion('${c.id}')">📱 Reclamar</button>
+          <button class="btn btn-success btn-sm" onclick="reactivar('${c.id}')">✓ Reactivar</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function cambiarTab(btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const tab = btn.dataset.tab;
+  ['renovaciones','todos','impagados'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==tab);
+  });
+}
+
+function avisarRenovacion(id) {
+  const c = db.contrato(id);
+  const config = db.config();
+  const msg = `Hola ${c.cliente.nombre.split(',')[0]}, le informamos que su contrato de mantenimiento nº CTR-${c.numero} se renovará el ${formatFecha(c.fechaRenovacion)} por importe de ${fmt(c.importeRenovacion)} (sin IVA). ${c.metodoPago==='transferencia'?'Le rogamos realice la transferencia en los próximos días.':'El cargo se realizará automáticamente en su cuenta.'} ${config.empresa} · ${config.telefono}`;
+  if (confirm('¿Enviar aviso por WhatsApp?')) {
+    alertaWhatsApp(c.cliente.telefono, msg);
+  } else {
+    alertaEmail(c.cliente.email, `Renovación contrato mantenimiento CTR-${c.numero} – ${config.empresa}`, msg);
+  }
+}
+
+function marcarPagado(id) {
+  if (!confirmar('¿Marcar como cobrado y actualizar fecha de renovación?')) return;
+  const c = db.contrato(id);
+  const nuevaFecha = new Date(c.fechaRenovacion||new Date());
+  nuevaFecha.setFullYear(nuevaFecha.getFullYear()+1);
+  actualizarContrato(id, { fechaRenovacion: nuevaFecha.toISOString().split('T')[0] });
+  toast('Renovación registrada ✓', 'success');
+  renderKPIs(); renderRenovaciones();
+}
+
+function reactivar(id) {
+  actualizarContrato(id, { estado: 'activo' });
+  toast('Contrato reactivado ✓', 'success');
+  renderKPIs(); renderImpagados();
+}
+
+document.getElementById('filtroMesRen').addEventListener('change', renderRenovaciones);
+
+renderKPIs();
+renderRenovaciones();
+renderTodos();
+renderImpagados();
+</script>
+</body>
+</html>

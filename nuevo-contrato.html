@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nuevo Contrato – Toldos Porriño</title>
+  <link rel="stylesheet" href="app.css"/>
+  <style>
+    .precio-box { background:var(--blue-light); border-radius:var(--radius); padding:1.25rem; border:1.5px solid var(--blue); }
+    .precio-linea { display:flex; justify-content:space-between; font-size:.9rem; padding:.3rem 0; border-bottom:1px solid rgba(30,111,191,.15); }
+    .precio-total { display:flex; justify-content:space-between; font-size:1.1rem; font-weight:900; padding-top:.6rem; color:var(--blue); }
+    .add-producto-btn { border:2px dashed var(--gray-mid); background:none; border-radius:var(--radius); padding:.75rem; width:100%; font-size:.88rem; color:var(--gray); cursor:pointer; transition:all .15s; }
+    .add-producto-btn:hover { border-color:var(--blue); color:var(--blue); }
+    .producto-row { background:var(--gray-light); border-radius:8px; padding:.85rem; margin-bottom:.5rem; position:relative; }
+    .remove-btn { position:absolute; top:.5rem; right:.5rem; background:var(--red-bg); color:var(--red); border:none; border-radius:6px; padding:.25rem .55rem; cursor:pointer; font-size:.8rem; }
+  </style>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand">Toldos Porriño</div><div class="sub">Gestión de Mantenimiento</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="index.html"          class="nav-link"><span class="icon">📊</span> Dashboard</a>
+      <a href="contratos.html"      class="nav-link"><span class="icon">📋</span> Contratos</a>
+      <a href="visitas.html"        class="nav-link"><span class="icon">📅</span> Visitas</a>
+      <a href="incidencias.html"    class="nav-link"><span class="icon">🚨</span> Incidencias</a>
+      <a href="facturacion.html"    class="nav-link"><span class="icon">💶</span> Facturación</a>
+      <div class="nav-section">Acciones</div>
+      <a href="nuevo-contrato.html" class="nav-link"><span class="icon">➕</span> Nuevo contrato</a>
+      <a href="informe.html"        class="nav-link"><span class="icon">📝</span> Nuevo informe</a>
+    </nav>
+    <div class="sidebar-footer">v1.0 · 2026</div>
+  </aside>
+
+  <div class="main-content">
+    <header class="topbar">
+      <span class="topbar-title">➕ Nuevo Contrato de Mantenimiento</span>
+    </header>
+
+    <main class="page">
+      <form id="formContrato" onsubmit="guardar(event)">
+        <div style="display:grid; grid-template-columns:1fr 380px; gap:1.5rem; align-items:start">
+
+          <!-- COLUMNA PRINCIPAL -->
+          <div>
+            <!-- DATOS CLIENTE -->
+            <div class="card section-gap">
+              <div class="card-header"><h2>👤 Datos del cliente</h2></div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <div class="form-group full">
+                    <label>Nombre / Razón social <span class="req">*</span></label>
+                    <input type="text" id="nombre" placeholder="Nombre o empresa" required/>
+                  </div>
+                  <div class="form-group">
+                    <label>NIF / CIF <span class="req">*</span></label>
+                    <input type="text" id="nif" placeholder="12345678A" required/>
+                  </div>
+                  <div class="form-group">
+                    <label>Teléfono <span class="req">*</span></label>
+                    <input type="tel" id="telefono" placeholder="666 000 000" required/>
+                  </div>
+                  <div class="form-group full">
+                    <label>Email</label>
+                    <input type="email" id="email" placeholder="cliente@email.com"/>
+                  </div>
+                  <div class="form-group full">
+                    <label>Domicilio (notificaciones)</label>
+                    <input type="text" id="direccion" placeholder="Calle, número, CP, localidad"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- INSTALACIÓN -->
+            <div class="card section-gap">
+              <div class="card-header"><h2>📍 Dirección de instalación</h2></div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label>Dirección donde están los toldos <span class="req">*</span></label>
+                  <input type="text" id="dirInstalacion" placeholder="Igual o diferente al domicilio" required/>
+                </div>
+                <div class="form-group">
+                  <label>Notas de acceso</label>
+                  <textarea id="notasAcceso" rows="2" placeholder="Horario de acceso, código de entrada, persona de contacto in situ..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- PRODUCTOS -->
+            <div class="card section-gap">
+              <div class="card-header">
+                <h2>🪟 Inventario de productos</h2>
+              </div>
+              <div class="card-body">
+                <div id="productosContainer"></div>
+                <button type="button" class="add-producto-btn" onclick="addProducto()">+ Añadir producto</button>
+
+                <div class="form-grid mt-2">
+                  <div class="form-group">
+                    <label>Nº total toldos/cortinas</label>
+                    <input type="number" id="numToldos" min="0" value="0" onchange="calcular()"/>
+                  </div>
+                  <div class="form-group">
+                    <label>Nº total pérgolas</label>
+                    <input type="number" id="numPergolas" min="0" value="0" onchange="calcular()"/>
+                  </div>
+                  <div class="form-group">
+                    <label>Nº motores (garantía extendida)</label>
+                    <input type="number" id="numMotores" min="0" value="0" onchange="calcular()"/>
+                  </div>
+                  <div class="form-group">
+                    <label>Nº sensores (garantía extendida)</label>
+                    <input type="number" id="numSensores" min="0" value="0" onchange="calcular()"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CONDICIONES ECONÓMICAS -->
+            <div class="card section-gap">
+              <div class="card-header"><h2>💶 Condiciones económicas</h2></div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Trimestre de alta</label>
+                    <select id="trimestre" onchange="calcular()">
+                      <option value="Q1">Ene–Mar (100%)</option>
+                      <option value="Q2">Abr–Jun (75%)</option>
+                      <option value="Q3">Jul–Sep (50%)</option>
+                      <option value="Q4">Oct–Dic (25%)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Descuento 1er año</label>
+                    <select id="descuento" onchange="calcular()">
+                      <option value="1">Sí – 25% descuento</option>
+                      <option value="0">No</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Método de pago</label>
+                    <select id="metodoPago" onchange="toggleIBAN()">
+                      <option value="transferencia">Transferencia bancaria</option>
+                      <option value="sepa">Domiciliación SEPA</option>
+                    </select>
+                  </div>
+                  <div class="form-group" id="ibanGroup" style="display:none">
+                    <label>IBAN</label>
+                    <input type="text" id="iban" placeholder="ES91 2100 0418 ..."/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FECHA Y NOTAS -->
+            <div class="card section-gap">
+              <div class="card-header"><h2>📋 Datos adicionales</h2></div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Fecha del contrato</label>
+                    <input type="date" id="fechaContrato"/>
+                  </div>
+                  <div class="form-group">
+                    <label>Fecha primera revisión</label>
+                    <input type="date" id="fechaRevision"/>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Notas internas</label>
+                  <textarea id="notas" rows="2" placeholder="Notas visibles solo para el equipo..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:1rem">
+              <button type="submit" class="btn btn-primary btn-lg">✓ Guardar contrato</button>
+              <a href="contratos.html" class="btn btn-ghost btn-lg">Cancelar</a>
+            </div>
+          </div>
+
+          <!-- COLUMNA PRECIO (sticky) -->
+          <div style="position:sticky; top:calc(var(--header-h) + 1rem)">
+            <div class="card">
+              <div class="card-header"><h2>💰 Resumen económico</h2></div>
+              <div class="card-body">
+                <div class="precio-box" id="resumenPrecio">
+                  <div class="text-gray text-sm" style="margin-bottom:.75rem">Introduce los datos para ver el precio</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </main>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="index.html"       class="bottom-nav-item"><span class="icon">📊</span>Dashboard</a>
+    <a href="contratos.html"   class="bottom-nav-item"><span class="icon">📋</span>Contratos</a>
+    <a href="visitas.html"     class="bottom-nav-item"><span class="icon">📅</span>Visitas</a>
+    <a href="incidencias.html" class="bottom-nav-item"><span class="icon">🚨</span>Alertas</a>
+    <a href="facturacion.html" class="bottom-nav-item"><span class="icon">💶</span>Cobros</a>
+  </div>
+</nav>
+
+<script src="app.js"></script>
+<script>
+let productoIdx = 0;
+
+function addProducto() {
+  const idx = productoIdx++;
+  const div = document.createElement('div');
+  div.className = 'producto-row';
+  div.id = `prod_${idx}`;
+  div.innerHTML = `
+    <button type="button" class="remove-btn" onclick="removeProducto('prod_${idx}')">✕ Quitar</button>
+    <div class="form-grid" style="padding-right:60px">
+      <div class="form-group">
+        <label>Cantidad</label>
+        <input type="number" min="1" value="1" name="prod_cantidad_${idx}"/>
+      </div>
+      <div class="form-group">
+        <label>Tipo de producto</label>
+        <select name="prod_tipo_${idx}">
+          <option>Toldo cofre</option><option>Toldo brazos articulados</option>
+          <option>Toldo vertical</option><option>Toldo pergolado</option>
+          <option>Pérgola bioclimática</option><option>Pérgola textil</option>
+          <option>Estore enrollable</option><option>Cortina plisada</option>
+          <option>Marquesina</option><option>Mosquitera</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Modelo / referencia</label>
+        <input type="text" name="prod_modelo_${idx}" placeholder="Ej: Cofre 4m aluminio"/>
+      </div>
+      <div class="form-group">
+        <label>Ubicación</label>
+        <input type="text" name="prod_ubicacion_${idx}" placeholder="Terraza principal"/>
+      </div>
+      <div class="form-group full">
+        <label>ID / Etiqueta</label>
+        <input type="text" name="prod_id_${idx}" placeholder="T001, P001..."/>
+      </div>
+    </div>`;
+  document.getElementById('productosContainer').appendChild(div);
+}
+
+function removeProducto(id) { document.getElementById(id)?.remove(); }
+
+function calcular() {
+  const t = parseInt(document.getElementById('numToldos').value)||0;
+  const p = parseInt(document.getElementById('numPergolas').value)||0;
+  const m = parseInt(document.getElementById('numMotores').value)||0;
+  const s = parseInt(document.getElementById('numSensores').value)||0;
+  const trim = document.getElementById('trimestre').value;
+  const desc = document.getElementById('descuento').value === '1';
+
+  const imp = calcularImporte(t, p, m, s);
+  const per = calcularPrimerPeriodo(imp.total, trim, desc);
+  const IVA = 0.21;
+
+  document.getElementById('resumenPrecio').innerHTML = `
+    <div class="precio-linea"><span>Base (${t} toldos)</span><span>${fmt(imp.base)}</span></div>
+    ${m ? `<div class="precio-linea"><span>Motores (${m})</span><span>${fmt(imp.motores)}</span></div>` : ''}
+    ${s ? `<div class="precio-linea"><span>Sensores (${s})</span><span>${fmt(imp.sensores)}</span></div>` : ''}
+    <div class="precio-linea font-bold"><span>Total anual (sin IVA)</span><span>${fmt(imp.total)}</span></div>
+    <div class="precio-linea"><span>Total anual (+21% IVA)</span><span>${fmt(imp.total*(1+IVA))}</span></div>
+    <hr style="border:none; border-top:1px solid rgba(30,111,191,.2); margin:.5rem 0"/>
+    <div class="precio-linea"><span>Subtotal (${desc?'-25% dto.':'sin dto.'})</span><span>${fmt(per.subtotal)}</span></div>
+    <div class="precio-linea"><span>Prorrateo ${trim}</span><span>×${({Q1:1,Q2:.75,Q3:.5,Q4:.25})[trim]}</span></div>
+    <div class="precio-total"><span>A pagar ahora (sin IVA)</span><span>${fmt(per.apagar)}</span></div>
+    <div class="precio-linea"><span>A pagar ahora (+IVA)</span><span style="font-weight:700">${fmt(per.apagar*(1+IVA))}</span></div>
+    <hr style="border:none; border-top:1px solid rgba(30,111,191,.2); margin:.5rem 0"/>
+    <div class="precio-linea text-gray"><span>Renovación anual (sin IVA)</span><span>${fmt(per.renovacion)}</span></div>
+  `;
+}
+
+function toggleIBAN() {
+  document.getElementById('ibanGroup').style.display =
+    document.getElementById('metodoPago').value === 'sepa' ? '' : 'none';
+}
+
+function getProductos() {
+  const rows = document.querySelectorAll('.producto-row');
+  return Array.from(rows).map(row => {
+    const idx = row.id.replace('prod_','');
+    return {
+      cantidad: parseInt(row.querySelector(`[name="prod_cantidad_${idx}"]`)?.value)||1,
+      tipo:     row.querySelector(`[name="prod_tipo_${idx}"]`)?.value||'',
+      modelo:   row.querySelector(`[name="prod_modelo_${idx}"]`)?.value||'',
+      ubicacion:row.querySelector(`[name="prod_ubicacion_${idx}"]`)?.value||'',
+      idEtiqueta:row.querySelector(`[name="prod_id_${idx}"]`)?.value||''
+    };
+  });
+}
+
+function guardar(e) {
+  e.preventDefault();
+  const t = parseInt(document.getElementById('numToldos').value)||0;
+  const p = parseInt(document.getElementById('numPergolas').value)||0;
+  const m = parseInt(document.getElementById('numMotores').value)||0;
+  const s = parseInt(document.getElementById('numSensores').value)||0;
+  const trim = document.getElementById('trimestre').value;
+  const desc = document.getElementById('descuento').value === '1';
+  const imp  = calcularImporte(t,p,m,s);
+  const per  = calcularPrimerPeriodo(imp.total, trim, desc);
+
+  const fechaContrato = document.getElementById('fechaContrato').value || new Date().toISOString().split('T')[0];
+  const fechaRevision = document.getElementById('fechaRevision').value || (() => {
+    const d = new Date(fechaContrato); d.setFullYear(d.getFullYear()+1); return d.toISOString().split('T')[0];
+  })();
+  const fechaRenovacion = (() => {
+    const d = new Date(fechaContrato);
+    d.setFullYear(d.getFullYear()+1); d.setMonth(0); d.setDate(1);
+    return d.toISOString().split('T')[0];
+  })();
+
+  const contrato = {
+    fecha: fechaContrato,
+    cliente: {
+      nombre: document.getElementById('nombre').value,
+      nif:    document.getElementById('nif').value,
+      direccion: document.getElementById('direccion').value,
+      telefono: document.getElementById('telefono').value,
+      email:  document.getElementById('email').value
+    },
+    direccionInstalacion: document.getElementById('dirInstalacion').value,
+    productos: getProductos(),
+    numToldos: t, numPergolas: p, numMotores: m, numSensores: s,
+    metodoPago: document.getElementById('metodoPago').value,
+    iban: document.getElementById('iban').value,
+    trimestreAlta: trim, descuentoPrimerAño: desc,
+    importeAnualBase: imp.base, importeMotores: imp.motores,
+    importeSensores: imp.sensores, importeAnualTotal: imp.total,
+    importePrimerPeriodo: per.apagar, importeRenovacion: per.renovacion,
+    estado: 'activo',
+    fechaProximaRevision: fechaRevision,
+    fechaRenovacion,
+    notas: document.getElementById('notas').value + (document.getElementById('notasAcceso').value ? '\nAcceso: '+document.getElementById('notasAcceso').value : '')
+  };
+
+  nuevoContrato(contrato);
+  toast('Contrato guardado correctamente ✓', 'success');
+  setTimeout(() => window.location.href = 'contratos.html', 1200);
+}
+
+// Init
+document.getElementById('fechaContrato').value = new Date().toISOString().split('T')[0];
+calcular();
+addProducto(); // Un producto por defecto
+</script>
+</body>
+</html>

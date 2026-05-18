@@ -1,7 +1,7 @@
 {
   "appId": "com.toldosporrino.mantenimiento",
   "appName": "TP Mantenimiento",
-  "webDir": ".",
+  "webDir": "www",
   "android": {
     "buildOptions": {
       "keystorePath": "release.keystore",

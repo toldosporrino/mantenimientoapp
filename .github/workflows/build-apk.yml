@@ -5,94 +5,65 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      # ── 1. Código fuente ──────────────────────────────────────────────
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Java (necesario para Gradle / Android SDK) ─────────────────
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          java-version: '17'
+          distribution: 'temurin'
 
-      # ── 3. Node.js ────────────────────────────────────────────────────
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      # ── 4. Android SDK ────────────────────────────────────────────────
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # ── 5. Dependencias npm ───────────────────────────────────────────
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      # ── 6. Capacitor: generar proyecto Android y sincronizar ──────────
-      - name: Capacitor add android (si no existe)
+      - name: Prepare www folder
         run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+          mkdir -p www
+          cp *.html *.css *.js www/
+
+      - name: Capacitor add android
+        run: npx cap add android
 
       - name: Capacitor sync
         run: npx cap sync android
 
-      # ── 7. Permisos de ejecución para Gradle ─────────────────────────
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      # ── 8. Build APK (debug – sin firma, listo para instalar) ─────────
       - name: Build APK
-        run: |
-          cd android
-          ./gradlew assembleDebug --no-daemon
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: cd android && ./gradlew assembleDebug --no-daemon
 
-      # ── 9. Localizar el APK generado ──────────────────────────────────
-      - name: Locate APK
-        run: |
-          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -1)
-          echo "APK_PATH=$APK" >> $GITHUB_ENV
-          cp "$APK" ./app-preview.apk
+      - name: Copy APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ./app-preview.apk
 
-      # ── 10. Timestamp del build (formato idéntico a tarifasapp) ───────
-      - name: Generate build timestamp
-        id: ts
-        run: echo "TS=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+      - name: Get build date
+        id: date
+        run: echo "value=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
 
-      # ── 11. Crear Release en GitHub ───────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ steps.ts.outputs.TS }}
-          name: Preview ${{ steps.ts.outputs.TS }}
+          tag_name: build-${{ steps.date.outputs.value }}
+          name: "Preview ${{ steps.date.outputs.value }}"
           body: |
-            ## TP Mantenimiento – Build automático
-
-            - **Timestamp:** ${{ steps.ts.outputs.TS }}
-            - **Commit:** ${{ github.sha }}
-            - **Rama:** ${{ github.ref_name }}
-
-            ### Instalación
-            1. Descarga `app-preview.apk`
-            2. En Android: Ajustes → Seguridad → *Instalar apps desconocidas* → activar
-            3. Abre el APK descargado e instala
+            Build automático generado el ${{ steps.date.outputs.value }}
+            Commit: ${{ github.sha }}
           files: app-preview.apk
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}

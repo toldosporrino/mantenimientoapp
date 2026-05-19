@@ -400,6 +400,8 @@ textarea { resize: vertical; min-height: 90px; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
 .modal-header h3 { font-size: 1.05rem; font-weight: 700; }
 .modal-close { font-size: 1.4rem; background: none; border: none; cursor: pointer; color: var(--gray); padding: 0.25rem; }
+.modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.modal-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .5rem; }
 
 /* ── UTILIDADES ──────────────────────────────────────────────── */
 .flex { display: flex; }
@@ -440,6 +442,12 @@ textarea { resize: vertical; min-height: 90px; }
   #grid2 { grid-template-columns: 1fr !important; }
   .nuevo-contrato-cols { grid-template-columns: 1fr !important; }
   .informe-firmas { grid-template-columns: 1fr !important; }
+
+  /* Modal detalle: reducir padding y colapsar grids */
+  .modal { padding: 1rem; }
+  .modal-header h3 { font-size: .95rem; }
+  .modal-grid-2 { grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .modal-grid-3 { grid-template-columns: 1fr 1fr; gap: .4rem; }
 
   /* Evitar desbordamiento horizontal */
   .app-wrapper { overflow-x: hidden; }

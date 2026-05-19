@@ -170,7 +170,7 @@ function verContrato(id) {
       <button class="modal-close" onclick="cerrarModal()">✕</button>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:1.25rem">
+    <div class="modal-grid-2" style="margin-bottom:1.25rem">
       <div><div class="text-sm text-gray">Estado</div>${badgeEstado(c.estado)}</div>
       <div><div class="text-sm text-gray">Fecha contrato</div><div class="font-bold">${formatFecha(c.fecha)}</div></div>
       <div><div class="text-sm text-gray">NIF/CIF</div><div>${c.cliente.nif}</div></div>
@@ -185,13 +185,15 @@ function verContrato(id) {
     </div>
 
     <div class="form-section-title">Productos</div>
-    <table style="font-size:.85rem; margin-bottom:1rem">
-      <thead><tr><th>Uds.</th><th>Tipo</th><th>Modelo</th><th>Ubicación</th><th>ID</th></tr></thead>
-      <tbody>${(c.productos||[]).map(p=>`<tr><td>${p.cantidad}</td><td>${p.tipo}</td><td>${p.modelo}</td><td>${p.ubicacion}</td><td>${p.idEtiqueta}</td></tr>`).join('')}</tbody>
-    </table>
+    <div class="table-wrap" style="margin-bottom:1rem">
+      <table style="font-size:.85rem">
+        <thead><tr><th>Uds.</th><th>Tipo</th><th>Modelo</th><th>Ubicación</th><th>ID</th></tr></thead>
+        <tbody>${(c.productos||[]).map(p=>`<tr><td>${p.cantidad}</td><td>${p.tipo}</td><td>${p.modelo}</td><td>${p.ubicacion}</td><td>${p.idEtiqueta}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>
 
     <div class="form-section-title">Importe anual (sin IVA)</div>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:.5rem; margin-bottom:1rem; font-size:.85rem">
+    <div class="modal-grid-3" style="margin-bottom:1rem; font-size:.85rem">
       <div><div class="text-gray">Base</div><div class="font-bold">${fmt(c.importeAnualBase)}</div></div>
       <div><div class="text-gray">Motores</div><div class="font-bold">${fmt(c.importeMotores)}</div></div>
       <div><div class="text-gray">Sensores</div><div class="font-bold">${fmt(c.importeSensores)}</div></div>

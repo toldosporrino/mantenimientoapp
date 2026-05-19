@@ -6,7 +6,9 @@
     "buildOptions": {
       "keystorePath": "release.keystore",
       "keystoreAlias": "toldosporrino"
-    }
+    },
+    "initialZoom": 100,
+    "useWideViewPort": false
   },
   "plugins": {
     "SplashScreen": {

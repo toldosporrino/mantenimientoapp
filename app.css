@@ -56,6 +56,9 @@ button { font-family: inherit; cursor: pointer; }
 .app-wrapper {
   display: flex;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* ── SIDEBAR (desktop) ──────────────────────────────────────── */
@@ -110,6 +113,8 @@ button { font-family: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;       /* permite que el flex item encoja por debajo de su contenido */
+  width: 0;           /* fuerza al flex: 1 a calcular el ancho correctamente */
 }
 
 /* ── TOP BAR ─────────────────────────────────────────────────── */

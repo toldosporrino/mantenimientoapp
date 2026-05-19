@@ -184,24 +184,14 @@ async function initApp() {
       fsdb.collection('config').doc('empresa').get()
     ]);
 
-    if (cSnap.empty) {
-      // Primera vez: sembrar datos de demostración
-      await _seedDemo();
-    } else {
-      _cache.contratos   = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      _cache.visitas     = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      _cache.incidencias = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      _cache.tecnicos    = tSnap.exists ? tSnap.data().lista : DATOS_DEMO.tecnicos;
-      _cache.config      = cfgSnap.exists ? cfgSnap.data() : DATOS_DEMO.config;
-      console.log(`✅ Firestore: ${_cache.contratos.length} contratos, ${_cache.visitas.length} visitas, ${_cache.incidencias.length} incidencias`);
-    }
+    _cache.contratos   = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _cache.visitas     = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _cache.incidencias = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _cache.tecnicos    = tSnap.exists ? tSnap.data().lista : ['Técnico 1'];
+    _cache.config      = cfgSnap.exists ? cfgSnap.data() : DATOS_DEMO.config;
+    console.log(`✅ Firestore: ${_cache.contratos.length} contratos, ${_cache.visitas.length} visitas, ${_cache.incidencias.length} incidencias`);
   } catch(err) {
-    console.warn('⚠️ Firestore no disponible, usando datos demo en memoria:', err.message);
-    _cache.contratos   = DATOS_DEMO.contratos;
-    _cache.visitas     = DATOS_DEMO.visitas;
-    _cache.incidencias = DATOS_DEMO.incidencias;
-    _cache.tecnicos    = DATOS_DEMO.tecnicos;
-    _cache.config      = DATOS_DEMO.config;
+    console.warn('⚠️ Firestore no disponible:', err.message);
   }
   _readyResolve();
 }

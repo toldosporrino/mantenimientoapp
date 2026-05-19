@@ -119,6 +119,8 @@
   <div class="modal" id="detalleIncContenido"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 <script>
 function render() {
@@ -295,9 +297,11 @@ function cerrarModal(id) { document.getElementById(id).classList.remove('open');
 ['buscar','filtroEstado','filtroSLA'].forEach(id => document.getElementById(id).addEventListener('input', render));
 document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); }));
 
-render();
-// Refrescar SLA cada minuto
-setInterval(render, 60000);
+appReady.then(() => {
+  render();
+  // Refrescar SLA cada minuto
+  setInterval(render, 60000);
+});
 </script>
 </body>
 </html>

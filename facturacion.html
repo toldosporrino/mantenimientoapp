@@ -123,6 +123,8 @@
 .tab-btn:hover  { color: var(--blue); }
 </style>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 <script>
 const IVA = 0.21;
@@ -270,10 +272,12 @@ function reactivar(id) {
 
 document.getElementById('filtroMesRen').addEventListener('change', renderRenovaciones);
 
-renderKPIs();
-renderRenovaciones();
-renderTodos();
-renderImpagados();
+appReady.then(() => {
+  renderKPIs();
+  renderRenovaciones();
+  renderTodos();
+  renderImpagados();
+});
 </script>
 </body>
 </html>

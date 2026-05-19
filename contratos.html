@@ -94,6 +94,8 @@
   <div class="modal" id="modalContenido"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 <script>
 let contratoActual = null;
@@ -267,7 +269,7 @@ document.getElementById('modalOverlay').addEventListener('click', function(e) {
   if (e.target === this) cerrarModal();
 });
 
-renderTabla();
+appReady.then(() => renderTabla());
 </script>
 </body>
 </html>

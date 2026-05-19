@@ -241,6 +241,8 @@
   </div>
 </nav>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 <script>
 let pasoActual = 1;
@@ -416,14 +418,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initFirma('firmaTecnico');
   initFirma('firmaCliente');
 
-  // Desde URL param
-  const params = new URLSearchParams(location.search);
-  const cid = params.get('contrato');
-  if (cid) seleccionarContrato(cid);
-
   document.getElementById('adjuntarPresupuesto').addEventListener('change', function() {
     document.getElementById('numPresupuestoGroup').classList.toggle('hidden', this.value==='no');
   });
+
+  // Desde URL param — esperar a que los datos estén listos
+  const params = new URLSearchParams(location.search);
+  const cid = params.get('contrato');
+  if (cid) appReady.then(() => seleccionarContrato(cid));
 });
 </script>
 </body>

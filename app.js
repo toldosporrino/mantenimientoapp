@@ -1,18 +1,38 @@
 /* ============================================================
    TOLDOS PORRIÑO – App de Mantenimiento
-   Lógica compartida + gestión de datos (localStorage)
+   Lógica compartida + Firebase Firestore
    ============================================================ */
 
-// ── CLAVES localStorage ──────────────────────────────────────
-const KEYS = {
-  contratos:  'tp_contratos',
-  visitas:    'tp_visitas',
-  incidencias:'tp_incidencias',
-  tecnicos:   'tp_tecnicos',
-  config:     'tp_config'
+// ── FIREBASE CONFIG ──────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBvfNucIIaVHC1o3HHy4ry4aRq5wF-yShM",
+  authDomain: "toldosporrino-mantenimiento.firebaseapp.com",
+  projectId: "toldosporrino-mantenimiento",
+  storageBucket: "toldosporrino-mantenimiento.firebasestorage.app",
+  messagingSenderId: "453433207873",
+  appId: "1:453433207873:web:653a07089169558572eac0"
 };
 
-// ── DATOS DE EJEMPLO (primera carga) ────────────────────────
+firebase.initializeApp(firebaseConfig);
+const fsdb = firebase.firestore();
+
+// ── CACHÉ EN MEMORIA ──────────────────────────────────────────
+// Las lecturas (db.contratos(), etc.) son síncronas desde aquí.
+// Las escrituras actualizan la caché inmediatamente y persisten
+// en Firestore en segundo plano.
+let _cache = {
+  contratos:   [],
+  visitas:     [],
+  incidencias: [],
+  tecnicos:    [],
+  config:      {}
+};
+
+// Promesa que se resuelve cuando los datos están cargados de Firestore
+let _readyResolve;
+const appReady = new Promise(resolve => { _readyResolve = resolve; });
+
+// ── DATOS DE DEMO (primera carga) ────────────────────────────
 const DATOS_DEMO = {
   contratos: [
     {
@@ -123,84 +143,130 @@ const DATOS_DEMO = {
   }
 };
 
-// ── INIT ─────────────────────────────────────────────────────
-function initApp() {
-  if (!localStorage.getItem(KEYS.contratos)) {
-    localStorage.setItem(KEYS.contratos,   JSON.stringify(DATOS_DEMO.contratos));
-    localStorage.setItem(KEYS.visitas,     JSON.stringify(DATOS_DEMO.visitas));
-    localStorage.setItem(KEYS.incidencias, JSON.stringify(DATOS_DEMO.incidencias));
-    localStorage.setItem(KEYS.tecnicos,    JSON.stringify(DATOS_DEMO.tecnicos));
-    localStorage.setItem(KEYS.config,      JSON.stringify(DATOS_DEMO.config));
+// ── SEMBRAR DATOS DEMO EN FIRESTORE ──────────────────────────
+async function _seedDemo() {
+  try {
+    const batch = fsdb.batch();
+    DATOS_DEMO.contratos.forEach(c => {
+      const { id, ...data } = c;
+      batch.set(fsdb.collection('contratos').doc(id), data);
+    });
+    DATOS_DEMO.visitas.forEach(v => {
+      const { id, ...data } = v;
+      batch.set(fsdb.collection('visitas').doc(id), data);
+    });
+    DATOS_DEMO.incidencias.forEach(i => {
+      const { id, ...data } = i;
+      batch.set(fsdb.collection('incidencias').doc(id), data);
+    });
+    batch.set(fsdb.collection('config').doc('tecnicos'), { lista: DATOS_DEMO.tecnicos });
+    batch.set(fsdb.collection('config').doc('empresa'), DATOS_DEMO.config);
+    await batch.commit();
+    console.log('✅ Datos demo sembrados en Firestore');
+  } catch(e) {
+    console.error('Error sembrando datos demo:', e);
   }
+  _cache.contratos   = DATOS_DEMO.contratos;
+  _cache.visitas     = DATOS_DEMO.visitas;
+  _cache.incidencias = DATOS_DEMO.incidencias;
+  _cache.tecnicos    = DATOS_DEMO.tecnicos;
+  _cache.config      = DATOS_DEMO.config;
 }
 
-// ── GETTERS ──────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────
+async function initApp() {
+  try {
+    const [cSnap, vSnap, iSnap, tSnap, cfgSnap] = await Promise.all([
+      fsdb.collection('contratos').get(),
+      fsdb.collection('visitas').get(),
+      fsdb.collection('incidencias').get(),
+      fsdb.collection('config').doc('tecnicos').get(),
+      fsdb.collection('config').doc('empresa').get()
+    ]);
+
+    if (cSnap.empty) {
+      // Primera vez: sembrar datos de demostración
+      await _seedDemo();
+    } else {
+      _cache.contratos   = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _cache.visitas     = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _cache.incidencias = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _cache.tecnicos    = tSnap.exists ? tSnap.data().lista : DATOS_DEMO.tecnicos;
+      _cache.config      = cfgSnap.exists ? cfgSnap.data() : DATOS_DEMO.config;
+      console.log(`✅ Firestore: ${_cache.contratos.length} contratos, ${_cache.visitas.length} visitas, ${_cache.incidencias.length} incidencias`);
+    }
+  } catch(err) {
+    console.warn('⚠️ Firestore no disponible, usando datos demo en memoria:', err.message);
+    _cache.contratos   = DATOS_DEMO.contratos;
+    _cache.visitas     = DATOS_DEMO.visitas;
+    _cache.incidencias = DATOS_DEMO.incidencias;
+    _cache.tecnicos    = DATOS_DEMO.tecnicos;
+    _cache.config      = DATOS_DEMO.config;
+  }
+  _readyResolve();
+}
+
+// ── GETTERS (síncronos desde caché) ──────────────────────────
 const db = {
-  contratos:   () => JSON.parse(localStorage.getItem(KEYS.contratos)  || '[]'),
-  visitas:     () => JSON.parse(localStorage.getItem(KEYS.visitas)    || '[]'),
-  incidencias: () => JSON.parse(localStorage.getItem(KEYS.incidencias)|| '[]'),
-  tecnicos:    () => JSON.parse(localStorage.getItem(KEYS.tecnicos)   || '[]'),
-  config:      () => JSON.parse(localStorage.getItem(KEYS.config)     || '{}'),
+  contratos:   () => _cache.contratos,
+  visitas:     () => _cache.visitas,
+  incidencias: () => _cache.incidencias,
+  tecnicos:    () => _cache.tecnicos,
+  config:      () => _cache.config,
 
-  contrato: (id) => db.contratos().find(c => c.id === id),
-  visita:   (id) => db.visitas().find(v => v.id === id),
-  incidencia:(id)=> db.incidencias().find(i => i.id === id),
+  contrato:    (id) => _cache.contratos.find(c => c.id === id),
+  visita:      (id) => _cache.visitas.find(v => v.id === id),
+  incidencia:  (id) => _cache.incidencias.find(i => i.id === id),
 
-  visitasPorContrato:    (cid) => db.visitas().filter(v => v.contratoId === cid),
-  incidenciasPorContrato:(cid) => db.incidencias().filter(i => i.contratoId === cid),
+  visitasPorContrato:     (cid) => _cache.visitas.filter(v => v.contratoId === cid),
+  incidenciasPorContrato: (cid) => _cache.incidencias.filter(i => i.contratoId === cid),
 };
 
-// ── SETTERS ──────────────────────────────────────────────────
-function guardarContratos(list)   { localStorage.setItem(KEYS.contratos,   JSON.stringify(list)); }
-function guardarVisitas(list)     { localStorage.setItem(KEYS.visitas,     JSON.stringify(list)); }
-function guardarIncidencias(list) { localStorage.setItem(KEYS.incidencias, JSON.stringify(list)); }
-function guardarTecnicos(list)    { localStorage.setItem(KEYS.tecnicos,    JSON.stringify(list)); }
-
-// ── CRUD CONTRATOS ───────────────────────────────────────────
+// ── CRUD CONTRATOS ────────────────────────────────────────────
 function nuevoContrato(datos) {
-  const lista = db.contratos();
-  const num = String(lista.length + 1).padStart(3, '0');
+  const num = String(_cache.contratos.length + 1).padStart(3, '0');
   const contrato = { id: 'CTR-' + num, numero: num, ...datos };
-  lista.push(contrato);
-  guardarContratos(lista);
+  _cache.contratos.push(contrato);
+  const { id, ...data } = contrato;
+  fsdb.collection('contratos').doc(id).set(data).catch(console.error);
   return contrato;
 }
 function actualizarContrato(id, datos) {
-  const lista = db.contratos().map(c => c.id === id ? { ...c, ...datos } : c);
-  guardarContratos(lista);
+  _cache.contratos = _cache.contratos.map(c => c.id === id ? { ...c, ...datos } : c);
+  fsdb.collection('contratos').doc(id).update(datos).catch(console.error);
 }
 function eliminarContrato(id) {
-  guardarContratos(db.contratos().filter(c => c.id !== id));
+  _cache.contratos = _cache.contratos.filter(c => c.id !== id);
+  fsdb.collection('contratos').doc(id).delete().catch(console.error);
 }
 
-// ── CRUD VISITAS ─────────────────────────────────────────────
+// ── CRUD VISITAS ──────────────────────────────────────────────
 function nuevaVisita(datos) {
-  const lista = db.visitas();
-  const num = String(lista.length + 1).padStart(3, '0');
+  const num = String(_cache.visitas.length + 1).padStart(3, '0');
   const visita = { id: 'VIS-' + num, ...datos };
-  lista.push(visita);
-  guardarVisitas(lista);
+  _cache.visitas.push(visita);
+  const { id, ...data } = visita;
+  fsdb.collection('visitas').doc(id).set(data).catch(console.error);
   return visita;
 }
 function actualizarVisita(id, datos) {
-  const lista = db.visitas().map(v => v.id === id ? { ...v, ...datos } : v);
-  guardarVisitas(lista);
+  _cache.visitas = _cache.visitas.map(v => v.id === id ? { ...v, ...datos } : v);
+  fsdb.collection('visitas').doc(id).update(datos).catch(console.error);
 }
 
-// ── CRUD INCIDENCIAS ─────────────────────────────────────────
+// ── CRUD INCIDENCIAS ──────────────────────────────────────────
 function nuevaIncidencia(datos) {
-  const lista = db.incidencias();
-  const num = String(lista.length + 1).padStart(3, '0');
-  // SLA: +48h laborables desde ahora
+  const num = String(_cache.incidencias.length + 1).padStart(3, '0');
   const sla = calcularSLA(new Date());
   const inc = { id: 'INC-' + num, fecha: new Date().toISOString(), slaVencimiento: sla.toISOString(), estado: 'abierta', ...datos };
-  lista.push(inc);
-  guardarIncidencias(lista);
+  _cache.incidencias.push(inc);
+  const { id, ...data } = inc;
+  fsdb.collection('incidencias').doc(id).set(data).catch(console.error);
   return inc;
 }
 function actualizarIncidencia(id, datos) {
-  const lista = db.incidencias().map(i => i.id === id ? { ...i, ...datos } : i);
-  guardarIncidencias(lista);
+  _cache.incidencias = _cache.incidencias.map(i => i.id === id ? { ...i, ...datos } : i);
+  fsdb.collection('incidencias').doc(id).update(datos).catch(console.error);
 }
 
 // ── CÁLCULO SLA (48h laborables L-V 9-18:30) ─────────────────
@@ -209,19 +275,19 @@ function calcularSLA(desde) {
   let d = new Date(desde);
   while (horas > 0) {
     d.setHours(d.getHours() + 1);
-    const dia = d.getDay(); // 0=dom, 6=sab
+    const dia = d.getDay();
     const h = d.getHours();
     if (dia >= 1 && dia <= 5 && h >= 9 && h < 18) horas--;
   }
   return d;
 }
 
-// ── CÁLCULO IMPORTE CONTRATO ─────────────────────────────────
+// ── CÁLCULO IMPORTE CONTRATO ──────────────────────────────────
 function calcularImporte(numToldos, numPergolas, numMotores, numSensores) {
   const TARIFA = { toldo1: 150, pergolaBase: 300, toldoExtra: 75, pergolaExtra: 175, motor: 45, sensor: 10 };
   let base = 0;
-  if (numToldos > 0) base += TARIFA.toldo1 + (numToldos - 1) * TARIFA.toldoExtra;
-  if (numPergolas > 0) base += TARIFA.pergolaBase + (numPergolas - 1) * TARIFA.pergolaExtra;
+  if (numToldos  > 0) base += TARIFA.toldo1    + (numToldos  - 1) * TARIFA.toldoExtra;
+  if (numPergolas> 0) base += TARIFA.pergolaBase + (numPergolas - 1) * TARIFA.pergolaExtra;
   const motores = numMotores * TARIFA.motor;
   const sensores = numSensores * TARIFA.sensor;
   const total = base + motores + sensores;
@@ -235,7 +301,7 @@ function calcularPrimerPeriodo(total, trimestre, descuento25) {
   return { subtotal, apagar, renovacion: total };
 }
 
-// ── HELPERS DE FECHA ─────────────────────────────────────────
+// ── HELPERS DE FECHA ──────────────────────────────────────────
 function formatFecha(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -258,7 +324,7 @@ function horasHasta(iso) {
   return Math.round((new Date(iso) - new Date()) / 3600000);
 }
 
-// ── ESTADO BADGE ─────────────────────────────────────────────
+// ── ESTADO BADGE ──────────────────────────────────────────────
 function badgeEstado(estado) {
   const map = {
     activo:     ['badge-green',  'Activo'],

@@ -96,9 +96,12 @@
   </div>
 </nav>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  appReady.then(() => {
   const contratos   = db.contratos();
   const visitas     = db.visitas();
   const incidencias = db.incidencias();
@@ -207,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>`).join('')}
       </tbody>
     </table>`;
+  }); // fin appReady.then
 });
 </script>
 </body>

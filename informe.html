@@ -292,29 +292,31 @@ function seleccionarContrato(id) {
     const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o);
   });
 
-  // Checklist por producto
+  // Checklist por unidad individual
   const div = document.getElementById('checklistProductos');
   div.innerHTML = '';
-  (c.productos || []).forEach((prod, pi) => {
-    const key = `prod_${pi}`;
+  (c.productos || []).forEach((prod) => {
+    const key = prod.idEtiqueta;
     checklist[key] = {};
+    const esCortina = prod.tipo.toLowerCase().includes('cortina') || prod.tipo.toLowerCase().includes('estore') || prod.tipo.toLowerCase().includes('plisad');
     const items = [
-      ['anclajes',   'Anclajes y estructura (apriete/par)'],
-      ['brazos',     'Brazos/articulaciones (holguras, topes)'],
-      ['eje',        'Eje y cojinetes'],
-      ['lona',       'Lona (tensión, costuras, desgarros)'],
-      ['motor',      'Motor (ruidos, par, fin de carrera)'],
-      ['sensor',     'Sensor viento/sol/lluvia (test)'],
-      ['mando',      'Mando/programación'],
-      ['electricidad','Electricidad (conexiones, protección)'],
-      ['limpAlum',   'Limpieza ligera aluminio'],
-      ['limpLona',   'Limpieza ligera lona (sup/inf)'],
-    ];
+      ['anclajes',    'Anclajes y estructura (apriete/par)',      true],
+      ['guias',       esCortina ? 'Guías/rieles (estado, deslizamiento)' : 'Brazos/articulaciones (holguras, topes)', true],
+      ['eje',         'Eje y cojinetes',                          true],
+      ['lona',        'Lona/tela (tensión, costuras, desgarros)', true],
+      ['motor',       'Motor (ruidos, par, fin de carrera)',       !esCortina],
+      ['sensor',      'Sensor viento/sol/lluvia (test)',           !esCortina],
+      ['mando',       'Mando/programación',                        !esCortina],
+      ['electricidad','Electricidad (conexiones, protección)',      !esCortina],
+      ['limpAlum',    'Limpieza ligera aluminio',                  true],
+      ['limpLona',    'Limpieza ligera lona (sup/inf)',            true],
+    ].filter(([,,show]) => show);
+
     div.innerHTML += `
       <div class="producto-check">
-        <div class="producto-header">
-          <span>${prod.cantidad}x ${prod.tipo} – ${prod.ubicacion}</span>
-          <span style="font-size:.78rem; opacity:.8">${prod.idEtiqueta}</span>
+        <div class="producto-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:1.1rem;font-weight:900;letter-spacing:.04em">${prod.idEtiqueta}</span>
+          <span style="font-size:.78rem;opacity:.85;text-align:right">${prod.tipo}<br><span style="font-weight:400">${prod.ubicacion}</span></span>
         </div>
         <ul class="checklist" style="background:white">
           ${items.map(([id,label])=>`
@@ -328,7 +330,7 @@ function seleccionarContrato(id) {
             </li>`).join('')}
         </ul>
         <div style="padding:.75rem 1rem; border-top:1px solid var(--gray-mid)">
-          <label class="text-sm font-bold">Observaciones específicas</label>
+          <label class="text-sm font-bold">Observaciones unidad ${prod.idEtiqueta}</label>
           <textarea style="margin-top:.35rem" rows="2" id="obs_${key}" placeholder="Notas sobre esta unidad..."></textarea>
         </div>
       </div>`;
@@ -388,7 +390,14 @@ function guardarInforme() {
     tipo: document.getElementById('tipoVisita').value,
     horaLlegada: document.getElementById('horaLlegada').value,
     horaFin: document.getElementById('horaFin').value,
-    checklist: JSON.parse(JSON.stringify(checklist)),
+    checklist: (() => {
+      // añadir observaciones por unidad antes de serializar
+      Object.keys(checklist).forEach(key => {
+        const el = document.getElementById(`obs_${key}`);
+        if (el && el.value) checklist[key].observaciones = el.value;
+      });
+      return JSON.parse(JSON.stringify(checklist));
+    })(),
     accionPreventivo: document.getElementById('accionPreventivo').value,
     piezaSustituida: document.getElementById('piezaSustituida').value,
     importePieza: parseFloat(document.getElementById('importePieza').value)||0,

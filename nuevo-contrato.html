@@ -246,8 +246,8 @@ function addProducto() {
         <input type="text" name="prod_ubicacion_${idx}" placeholder="Terraza principal"/>
       </div>
       <div class="form-group full">
-        <label>ID / Etiqueta</label>
-        <input type="text" name="prod_id_${idx}" placeholder="T001, P001..."/>
+        <label>Etiquetas individuales <span style="color:var(--gray);font-weight:400">(una por unidad, separadas por coma)</span></label>
+        <input type="text" name="prod_id_${idx}" placeholder="T001, T002, T003  /  C001, C002  /  P001"/>
       </div>
     </div>`;
   document.getElementById('productosContainer').appendChild(div);
@@ -288,18 +288,29 @@ function toggleIBAN() {
     document.getElementById('metodoPago').value === 'sepa' ? '' : 'none';
 }
 
+// Devuelve una unidad individual por cada elemento físico
 function getProductos() {
   const rows = document.querySelectorAll('.producto-row');
-  return Array.from(rows).map(row => {
-    const idx = row.id.replace('prod_','');
-    return {
-      cantidad: parseInt(row.querySelector(`[name="prod_cantidad_${idx}"]`)?.value)||1,
-      tipo:     row.querySelector(`[name="prod_tipo_${idx}"]`)?.value||'',
-      modelo:   row.querySelector(`[name="prod_modelo_${idx}"]`)?.value||'',
-      ubicacion:row.querySelector(`[name="prod_ubicacion_${idx}"]`)?.value||'',
-      idEtiqueta:row.querySelector(`[name="prod_id_${idx}"]`)?.value||''
-    };
+  const unidades = [];
+  rows.forEach(row => {
+    const idx      = row.id.replace('prod_','');
+    const cantidad = parseInt(row.querySelector(`[name="prod_cantidad_${idx}"]`)?.value)||1;
+    const tipo     = row.querySelector(`[name="prod_tipo_${idx}"]`)?.value||'';
+    const modelo   = row.querySelector(`[name="prod_modelo_${idx}"]`)?.value||'';
+    const ubicacion= row.querySelector(`[name="prod_ubicacion_${idx}"]`)?.value||'';
+    const raw      = row.querySelector(`[name="prod_id_${idx}"]`)?.value||'';
+    const etiquetas= raw.split(',').map(e=>e.trim()).filter(Boolean);
+
+    for (let i = 0; i < cantidad; i++) {
+      unidades.push({
+        tipo,
+        modelo,
+        ubicacion,
+        idEtiqueta: etiquetas[i] || ''
+      });
+    }
   });
+  return unidades;
 }
 
 function guardar(e) {

@@ -16,6 +16,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fsdb = firebase.firestore();
 
+// ── PERSISTENCIA OFFLINE ──────────────────────────────────────
+// Permite que la app funcione sin cobertura (campo)
+fsdb.enablePersistence({ synchronizeTabs: true })
+  .catch(err => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Persistencia offline: múltiples pestañas abiertas');
+    } else if (err.code === 'unimplemented') {
+      console.warn('Persistencia offline no soportada en este navegador');
+    }
+  });
+
 // ── CACHÉ EN MEMORIA ──────────────────────────────────────────
 // Las lecturas (db.contratos(), etc.) son síncronas desde aquí.
 // Las escrituras actualizan la caché inmediatamente y persisten
@@ -184,16 +195,42 @@ async function initApp() {
       fsdb.collection('config').doc('empresa').get()
     ]);
 
-    _cache.contratos   = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    _cache.visitas     = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    _cache.incidencias = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    _cache.tecnicos    = tSnap.exists ? tSnap.data().lista : ['Técnico 1'];
-    _cache.config      = cfgSnap.exists ? cfgSnap.data() : DATOS_DEMO.config;
-    console.log(`✅ Firestore: ${_cache.contratos.length} contratos, ${_cache.visitas.length} visitas, ${_cache.incidencias.length} incidencias`);
+    // Si Firestore está vacío → sembrar datos de demo
+    if (cSnap.empty) {
+      console.log('🌱 Firestore vacío, sembrando datos demo...');
+      await _seedDemo();
+    } else {
+      _cache.contratos   = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _cache.visitas     = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _cache.incidencias = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _cache.tecnicos    = tSnap.exists ? tSnap.data().lista : DATOS_DEMO.tecnicos;
+      _cache.config      = cfgSnap.exists ? cfgSnap.data() : DATOS_DEMO.config;
+      console.log(`✅ Firestore: ${_cache.contratos.length} contratos, ${_cache.visitas.length} visitas, ${_cache.incidencias.length} incidencias`);
+    }
+
+    // Sincronización en tiempo real para contratos e incidencias
+    _iniciarListeners();
+
   } catch(err) {
-    console.warn('⚠️ Firestore no disponible:', err.message);
+    console.warn('⚠️ Firestore no disponible (modo offline):', err.message);
   }
   _readyResolve();
+}
+
+// ── LISTENERS EN TIEMPO REAL ──────────────────────────────────
+// Los cambios de un técnico aparecen en el móvil de otro al instante
+function _iniciarListeners() {
+  fsdb.collection('contratos').onSnapshot(snap => {
+    _cache.contratos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }, err => console.warn('Listener contratos:', err.message));
+
+  fsdb.collection('visitas').onSnapshot(snap => {
+    _cache.visitas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }, err => console.warn('Listener visitas:', err.message));
+
+  fsdb.collection('incidencias').onSnapshot(snap => {
+    _cache.incidencias = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }, err => console.warn('Listener incidencias:', err.message));
 }
 
 // ── GETTERS (síncronos desde caché) ──────────────────────────
@@ -370,8 +407,25 @@ function toast(msg, tipo = 'success') {
 // ── CONFIRMAR ACCIÓN ──────────────────────────────────────────
 function confirmar(msg) { return window.confirm(msg); }
 
+// ── OVERLAY DE CARGA ──────────────────────────────────────────
+function _inyectarOverlayCarga() {
+  const el = document.createElement('div');
+  el.id = 'app-loading';
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
+      <div class="spinner"></div>
+      <div style="color:#1e6fbf;font-weight:600;font-size:.95rem">Cargando datos…</div>
+    </div>`;
+  document.body.appendChild(el);
+}
+
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  _inyectarOverlayCarga();
   initApp();
   marcarNavActiva();
+  appReady.then(() => {
+    const el = document.getElementById('app-loading');
+    if (el) el.remove();
+  });
 });

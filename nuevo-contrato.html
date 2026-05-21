@@ -352,10 +352,18 @@ function guardar(e) {
   setTimeout(() => window.location.href = 'contratos.html', 1200);
 }
 
-// Init
+// Init — esperar a Firestore antes de intentar guardar
 document.getElementById('fechaContrato').value = new Date().toISOString().split('T')[0];
 calcular();
 addProducto(); // Un producto por defecto
+
+// Deshabilitar el botón guardar hasta que appReady resuelva
+document.addEventListener('DOMContentLoaded', () => {
+  const btnGuardar = document.querySelector('button[type="submit"], button[onclick*="guardar"]');
+  appReady.then(() => {
+    if (btnGuardar) btnGuardar.disabled = false;
+  });
+});
 </script>
 </body>
 </html>

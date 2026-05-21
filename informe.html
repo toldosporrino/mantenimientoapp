@@ -250,23 +250,25 @@ const totalPasos = 4;
 let contratoSeleccionado = null;
 const checklist = {};
 
-// BÚSQUEDA CONTRATO
-document.getElementById('buscarContrato').addEventListener('input', function() {
-  const q = this.value.toLowerCase();
-  const lista = db.contratos().filter(c =>
-    `${c.cliente.nombre} ${c.cliente.nif} ${c.numero}`.toLowerCase().includes(q)
-  );
-  document.getElementById('listaContratos').innerHTML = lista.length ? `
-    <ul style="list-style:none; border:1.5px solid var(--gray-mid); border-radius:var(--radius); overflow:hidden">
-      ${lista.map(c=>`
-        <li onclick="seleccionarContrato('${c.id}')" style="padding:.85rem 1rem; border-bottom:1px solid var(--gray-mid); cursor:pointer; display:flex; justify-content:space-between; align-items:center" onmouseover="this.style.background='var(--gray-light)'" onmouseout="this.style.background=''">
-          <div>
-            <div class="font-bold">${c.cliente.nombre}</div>
-            <div class="text-sm text-gray">CTR-${c.numero} · ${c.direccionInstalacion}</div>
-          </div>
-          <div class="text-sm text-gray">${c.numToldos}T ${c.numPergolas}P</div>
-        </li>`).join('')}
-    </ul>` : '<div class="text-sm text-gray">Sin resultados</div>';
+// BÚSQUEDA CONTRATO — espera a que Firestore haya cargado
+appReady.then(() => {
+  document.getElementById('buscarContrato').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    const lista = db.contratos().filter(c =>
+      `${c.cliente.nombre} ${c.cliente.nif} ${c.numero}`.toLowerCase().includes(q)
+    );
+    document.getElementById('listaContratos').innerHTML = lista.length ? `
+      <ul style="list-style:none; border:1.5px solid var(--gray-mid); border-radius:var(--radius); overflow:hidden">
+        ${lista.map(c=>`
+          <li onclick="seleccionarContrato('${c.id}')" style="padding:.85rem 1rem; border-bottom:1px solid var(--gray-mid); cursor:pointer; display:flex; justify-content:space-between; align-items:center" onmouseover="this.style.background='var(--gray-light)'" onmouseout="this.style.background=''">
+            <div>
+              <div class="font-bold">${c.cliente.nombre}</div>
+              <div class="text-sm text-gray">CTR-${c.numero} · ${c.direccionInstalacion}</div>
+            </div>
+            <div class="text-sm text-gray">${c.numToldos}T ${c.numPergolas}P</div>
+          </li>`).join('')}
+      </ul>` : '<div class="text-sm text-gray">Sin resultados</div>';
+  });
 });
 
 function seleccionarContrato(id) {

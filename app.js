@@ -43,146 +43,16 @@ let _cache = {
 let _readyResolve;
 const appReady = new Promise(resolve => { _readyResolve = resolve; });
 
-// ── DATOS DE DEMO (primera carga) ────────────────────────────
-const DATOS_DEMO = {
-  contratos: [
-    {
-      id: 'CTR-001', numero: '001',
-      fecha: '2026-01-10',
-      cliente: { nombre: 'Restaurante Casa Pepe', nif: 'B36123456',
-        direccion: 'Rúa Castelao 12, Vigo', telefono: '986111222',
-        email: 'casapepe@email.com' },
-      direccionInstalacion: 'Rúa Castelao 12, Vigo',
-      productos: [
-        { cantidad: 2, tipo: 'Toldo cofre', modelo: 'Cofre 4m', ubicacion: 'Terraza principal', idEtiqueta: 'T001-T002' },
-        { cantidad: 1, tipo: 'Pérgola bioclimática', modelo: 'PB-6x4', ubicacion: 'Jardín', idEtiqueta: 'P001' }
-      ],
-      numToldos: 2, numPergolas: 1, numMotores: 3, numSensores: 1,
-      metodoPago: 'sepa', iban: 'ES91 2100 0418 4502 0005 1332',
-      trimestreAlta: 'Q1', descuentoPrimerAño: true,
-      importeAnualBase: 625, importeMotores: 135, importeSensores: 10,
-      importeAnualTotal: 770, importePrimerPeriodo: 577.50, importeRenovacion: 770,
-      estado: 'activo',
-      fechaProximaRevision: '2026-06-15',
-      fechaRenovacion: '2027-01-01',
-      notas: 'Acceso por puerta trasera. Contacto: María 666333444'
-    },
-    {
-      id: 'CTR-002', numero: '002',
-      fecha: '2026-02-20',
-      cliente: { nombre: 'García Fernández, Luis', nif: '44123456B',
-        direccion: 'Av. de Portugal 5, O Porriño', telefono: '666777888',
-        email: 'luisgarcia@gmail.com' },
-      direccionInstalacion: 'Av. de Portugal 5, O Porriño',
-      productos: [
-        { cantidad: 1, tipo: 'Toldo brazos articulados', modelo: 'BA-3m', ubicacion: 'Balcón', idEtiqueta: 'T003' }
-      ],
-      numToldos: 1, numPergolas: 0, numMotores: 1, numSensores: 0,
-      metodoPago: 'transferencia', iban: '',
-      trimestreAlta: 'Q1', descuentoPrimerAño: true,
-      importeAnualBase: 150, importeMotores: 45, importeSensores: 0,
-      importeAnualTotal: 195, importePrimerPeriodo: 146.25, importeRenovacion: 195,
-      estado: 'activo',
-      fechaProximaRevision: '2026-07-01',
-      fechaRenovacion: '2027-01-01',
-      notas: ''
-    },
-    {
-      id: 'CTR-003', numero: '003',
-      fecha: '2025-10-05',
-      cliente: { nombre: 'Hotel Río Miño', nif: 'A36987654',
-        direccion: 'Ctra. N-120 km 45, O Porriño', telefono: '986555666',
-        email: 'mantenimiento@hotelriomino.com' },
-      direccionInstalacion: 'Ctra. N-120 km 45, O Porriño',
-      productos: [
-        { cantidad: 4, tipo: 'Toldo cofre motorizado', modelo: 'Cofre 5m', ubicacion: 'Terraza 1ª planta', idEtiqueta: 'T004-T007' },
-        { cantidad: 2, tipo: 'Pérgola bioclimática', modelo: 'PB-8x5', ubicacion: 'Jardín', idEtiqueta: 'P002-P003' }
-      ],
-      numToldos: 4, numPergolas: 2, numMotores: 6, numSensores: 2,
-      metodoPago: 'sepa', iban: 'ES76 0049 1800 0120 0000 0000',
-      trimestreAlta: 'Q4', descuentoPrimerAño: true,
-      importeAnualBase: 1175, importeMotores: 270, importeSensores: 20,
-      importeAnualTotal: 1465, importePrimerPeriodo: 274.69, importeRenovacion: 1465,
-      estado: 'activo',
-      fechaProximaRevision: '2026-05-20',
-      fechaRenovacion: '2027-01-01',
-      notas: 'Responsable mantenimiento: Javier ext. 201'
-    }
-  ],
-  visitas: [
-    {
-      id: 'VIS-001', contratoId: 'CTR-003',
-      tipo: 'preventiva', fecha: '2026-05-20',
-      fechaRealizada: null, tecnico: 'Carlos López',
-      estado: 'pendiente', informe: null,
-      notas: 'Revisión anual preventiva Hotel Río Miño'
-    },
-    {
-      id: 'VIS-002', contratoId: 'CTR-001',
-      tipo: 'preventiva', fecha: '2026-06-15',
-      fechaRealizada: null, tecnico: 'Carlos López',
-      estado: 'pendiente', informe: null,
-      notas: ''
-    },
-    {
-      id: 'VIS-003', contratoId: 'CTR-002',
-      tipo: 'preventiva', fecha: '2026-07-01',
-      fechaRealizada: null, tecnico: 'Carlos López',
-      estado: 'pendiente', informe: null,
-      notas: ''
-    }
-  ],
-  incidencias: [
-    {
-      id: 'INC-001', contratoId: 'CTR-003',
-      fecha: '2026-05-16T09:30:00',
-      descripcion: 'Motor toldo T005 no responde al mando',
-      estado: 'abierta',
-      slaVencimiento: '2026-05-19T09:30:00',
-      canal: 'whatsapp', tecnico: '', resolucion: '',
-      fotos: []
-    }
-  ],
-  tecnicos: ['Carlos López', 'José Martínez', 'Ana Rodríguez'],
-  config: {
-    empresa: 'Toldos Porriño, SRL',
-    telefono: '986 342 194',
-    email: 'info@toldosporrino.com',
-    whatsapp: '34986342194',
-    tarifaHora: 45,
-    tarifaDesplazamiento: 25
-  }
+// ── CONFIG POR DEFECTO (sin datos demo) ───────────────────────
+const CONFIG_DEFAULT = {
+  empresa: 'Toldos Porriño, SRL',
+  telefono: '986 342 194',
+  email: 'info@toldosporrino.com',
+  whatsapp: '34986342194',
+  tarifaHora: 45,
+  tarifaDesplazamiento: 25
 };
-
-// ── SEMBRAR DATOS DEMO EN FIRESTORE ──────────────────────────
-async function _seedDemo() {
-  try {
-    const batch = fsdb.batch();
-    DATOS_DEMO.contratos.forEach(c => {
-      const { id, ...data } = c;
-      batch.set(fsdb.collection('contratos').doc(id), data);
-    });
-    DATOS_DEMO.visitas.forEach(v => {
-      const { id, ...data } = v;
-      batch.set(fsdb.collection('visitas').doc(id), data);
-    });
-    DATOS_DEMO.incidencias.forEach(i => {
-      const { id, ...data } = i;
-      batch.set(fsdb.collection('incidencias').doc(id), data);
-    });
-    batch.set(fsdb.collection('config').doc('tecnicos'), { lista: DATOS_DEMO.tecnicos });
-    batch.set(fsdb.collection('config').doc('empresa'), DATOS_DEMO.config);
-    await batch.commit();
-    console.log('✅ Datos demo sembrados en Firestore');
-  } catch(e) {
-    console.error('Error sembrando datos demo:', e);
-  }
-  _cache.contratos   = DATOS_DEMO.contratos;
-  _cache.visitas     = DATOS_DEMO.visitas;
-  _cache.incidencias = DATOS_DEMO.incidencias;
-  _cache.tecnicos    = DATOS_DEMO.tecnicos;
-  _cache.config      = DATOS_DEMO.config;
-}
+const TECNICOS_DEFAULT = ['Técnico 1'];
 
 // ── INIT ─────────────────────────────────────────────────────
 async function initApp() {
@@ -195,18 +65,12 @@ async function initApp() {
       fsdb.collection('config').doc('empresa').get()
     ]);
 
-    // Si Firestore está vacío → sembrar datos de demo
-    if (cSnap.empty) {
-      console.log('🌱 Firestore vacío, sembrando datos demo...');
-      await _seedDemo();
-    } else {
-      _cache.contratos   = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      _cache.visitas     = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      _cache.incidencias = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      _cache.tecnicos    = tSnap.exists ? tSnap.data().lista : DATOS_DEMO.tecnicos;
-      _cache.config      = cfgSnap.exists ? cfgSnap.data() : DATOS_DEMO.config;
-      console.log(`✅ Firestore: ${_cache.contratos.length} contratos, ${_cache.visitas.length} visitas, ${_cache.incidencias.length} incidencias`);
-    }
+    _cache.contratos   = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _cache.visitas     = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _cache.incidencias = iSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _cache.tecnicos    = tSnap.exists ? tSnap.data().lista : TECNICOS_DEFAULT;
+    _cache.config      = cfgSnap.exists ? cfgSnap.data() : CONFIG_DEFAULT;
+    console.log(`✅ Firestore: ${_cache.contratos.length} contratos, ${_cache.visitas.length} visitas, ${_cache.incidencias.length} incidencias`);
 
     // Sincronización en tiempo real para contratos e incidencias
     _iniciarListeners();
